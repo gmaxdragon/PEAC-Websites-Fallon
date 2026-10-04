@@ -1,0 +1,35 @@
+# PEAC private/runtime data
+data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.hosted.example
+email-settings.cmd
+*.pem
+*.key
+
+# Python environments / caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated/private exports
+exports/
+backups/
+*.eml
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
