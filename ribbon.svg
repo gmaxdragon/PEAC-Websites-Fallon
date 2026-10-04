@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 96" role="img" aria-label="Green awareness ribbon">
+<defs><linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ade99b"/><stop offset="1" stop-color="#247e51"/></linearGradient><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#207c4d"/><stop offset="1" stop-color="#71c95e"/></linearGradient></defs>
+<path d="M24 12Q40 1 56 12L62 27Q40 17 18 27Z" fill="#1c7047"/>
+<path d="M24 12C12 31 27 51 53 88L57 76L71 75C50 46 29 23 24 12Z" fill="url(#b)"/>
+<path d="M56 12C70 31 51 57 26 90L23 76L9 76C33 45 51 23 56 12Z" fill="url(#a)"/>
+<path d="M55 17C54 28 43 42 33 57" fill="none" stroke="#d1f5b8" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+</svg>
