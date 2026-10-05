@@ -39,5 +39,10 @@
     $('lunchFields').disabled=!c.lunch_enabled;$('formAvailability').textContent=c.lunch_enabled?'Requests are open. Your details go to the private PEAC queue.':'Requests are paused while the PEAC team finishes setup. Please check with your coordinator.';
     if(pending)status('A previous request has an unconfirmed response. Re-enter its exact details to reconcile it, or ask a coordinator to check it first.',true);
   }).catch(()=>{$('formAvailability').textContent='This preview is not connected. Open the page through the PEAC server; no request has been sent.';});
+  $('publicFeedbackBtn')?.addEventListener('click',async()=>{
+    const message=$('publicFeedbackText').value.trim();if(!message){$('publicFeedbackStatus').textContent='Write feedback first.';return;}
+    $('publicFeedbackBtn').disabled=true;$('publicFeedbackStatus').textContent='Saving feedback...';
+    try{const r=await fetch('/api/public/feedback',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1'},credentials:'same-origin',body:JSON.stringify({message})});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not save feedback.');$('publicFeedbackText').value='';$('publicFeedbackStatus').textContent='Feedback saved privately. Thank you.';}catch(e){$('publicFeedbackStatus').textContent=e.message;}finally{$('publicFeedbackBtn').disabled=false;}
+  });
   $('motionToggle').addEventListener('click',()=>{const off=document.documentElement.dataset.motion!=='off';document.documentElement.dataset.motion=off?'off':'on';$('motionToggle').setAttribute('aria-pressed',String(off));$('motionToggle').textContent=off?'Motion reduced':'Reduce motion';});
 })();
