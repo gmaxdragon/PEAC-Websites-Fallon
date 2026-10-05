@@ -107,6 +107,8 @@ class PortalRouter:
             self.service.auth.logout(headers.get("Cookie",""))
             return self.json_response({"ok":True},200,{"Set-Cookie":f"{COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0" + ("; Secure" if HOSTED else "")})
         if verb=="GET" and path in PRIVATE_FILES: return self.asset(PRIVATE_FILES[path])
+        if path=="/api/portal/notifications" and verb=="GET": return self.json_response(self.service.notifications(user))
+        if path=="/api/portal/notifications/read" and verb=="POST": return self.json_response(self.service.mark_notifications_read(user))
         if path=="/api/portal/site-feedback" and verb=="GET": return self.json_response(self.service.feedback_items(user))
         if path=="/api/portal/site-feedback" and verb=="POST": return self.json_response(self.service.save_feedback(payload,"private",user["id"]),201)
         if path=="/api/backup.sqlite3" and verb=="GET":
