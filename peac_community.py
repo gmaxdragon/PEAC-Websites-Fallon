@@ -113,7 +113,7 @@ class CommunityService(Service):
                     entry_id TEXT PRIMARY KEY REFERENCES entries(id) ON DELETE CASCADE,
                     person_name TEXT NOT NULL, created_at TEXT NOT NULL, created_by TEXT NOT NULL
                 );
-                CREATE INDEX IF NOT EXISTS compliment_people_name ON compliment_people(person_name);
+                CREATE INDEX IF NOT EXISTS compliment_people_name ON compliment_people(person_name);\n                CREATE TABLE IF NOT EXISTS site_feedback (id TEXT PRIMARY KEY, source TEXT NOT NULL, message TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL);
             """)
             db.execute("INSERT OR IGNORE INTO portal_content VALUES(1,?)", (json.dumps(DEFAULT_CONTENT),))
             db.commit()
@@ -137,6 +137,21 @@ class CommunityService(Service):
             "compliments": "coming_soon", "today": self.today_fn().isoformat(), "quote": self.quote_of_day(),
             "notice": "Hosted PEAC site." if __import__("os").getenv("PEAC_DEPLOY_MODE","").lower()=="hosted" else "Local preview. Public hosting is not configured.",
         }
+
+    def save_feedback(self, payload, source, user_id="public"):
+        p=object_payload(payload)
+        if set(p)!={"message"}: raise APIError("Send only the feedback message.")
+        message=text(p.get("message",""),"feedback",1500,True)
+        self.auth.rate_limit("feedback:"+str(user_id),12,3600)
+        identity=str(uuid.uuid4())
+        with self.store.transaction() as db:
+            db.execute("INSERT INTO site_feedback VALUES(?,?,?,?,?)",(identity,source,message,str(user_id),now_iso()))
+        return {"ok":True,"id":identity,"notice":"Feedback saved privately for PEAC administrators."}
+
+    def feedback_items(self, user):
+        require_admin(user)
+        with self.store.connection() as db:
+            return [dict(r) for r in db.execute("SELECT id,source,message,created_by,created_at FROM site_feedback ORDER BY created_at DESC LIMIT 200")]
 
     def contacts(self):
         with self.store.connection() as db:
