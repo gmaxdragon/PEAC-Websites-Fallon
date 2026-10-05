@@ -12,7 +12,7 @@
 <link href="/ribbon.svg" rel="icon" type="image/svg+xml"/>
 <link href="/community.css" rel="stylesheet"/><link href="/console.css" rel="stylesheet"/><meta content="noindex,nofollow" name="robots"/><script defer="" src="/console.js"></script></head>
 <body class="team-console">
-<aside class="console-sidebar"><a class="console-brand" href="/console"><img alt="PEAC green ribbon" src="/ribbon.svg"/><div><strong>PEAC</strong><small>The kindness workspace</small></div></a><div class="sidebar-section-label">WORKSPACE</div><nav aria-label="Console navigation" class="console-nav"><a class="active" data-nav="overview" href="#overview"><span class="nav-icon">▦</span>Overview</a><a data-nav="reports" href="#reports"><span class="nav-icon">∿</span>Reports &amp; records</a><a data-nav="people" href="#people"><span class="nav-icon">＋</span>Compliments</a><a data-nav="lunch" href="#lunch"><span class="nav-icon">♧</span>Lunch Buddies<span class="nav-count" id="navLunchCount">0</span></a><a class="admin-only" data-nav="website" href="#website"><span class="nav-icon">▤</span>Public website</a><a data-nav="assistant" href="#assistant"><span class="nav-icon">✧</span>PEAC Assistant</a><a data-nav="feedback" href="#feedback"><span class="nav-icon">◇</span>Feedback</a><a data-nav="soon" href="#soon"><span class="nav-icon">◷</span>Coming soon</a><a data-nav="settings" href="#settings"><span class="nav-icon">⚙</span>Settings</a></nav><div class="sidebar-bottom"><div class="sidebar-motto"><img alt="PEAC green ribbon" src="/ribbon.svg"/><p>Kindness, thoughtfully<br/>put into practice.</p></div><a class="public-link" href="/" rel="noopener" target="_blank">View public site ↗</a><div class="sidebar-user"><span class="user-avatar" id="userInitial">P</span><div><strong id="signedInName">PEAC team</strong><small id="signedInRole">Private workspace</small></div><button aria-label="Sign out" id="logoutButton" title="Sign out" type="button">↪</button></div></div></aside><a class="skip-link" href="#dashboardView">Skip to dashboard</a>
+<aside class="console-sidebar"><a class="console-brand" href="/console"><img alt="PEAC green ribbon" src="/ribbon.svg"/><div><strong>PEAC</strong><small>The kindness workspace</small></div></a><div class="sidebar-section-label">WORKSPACE</div><nav aria-label="Console navigation" class="console-nav"><a class="active" data-nav="home" href="#home"><span class="nav-icon">⌂</span>Home</a><a data-nav="overview" href="#overview"><span class="nav-icon">▦</span>Overview</a><a data-nav="reports" href="#reports"><span class="nav-icon">∿</span>Reports &amp; records</a><a data-nav="people" href="#people"><span class="nav-icon">＋</span>Compliments</a><a data-nav="lunch" href="#lunch"><span class="nav-icon">♧</span>Lunch Buddies<span class="nav-count" id="navLunchCount">0</span></a><a class="admin-only" data-nav="website" href="#website"><span class="nav-icon">▤</span>Public website</a><a data-nav="assistant" href="#assistant"><span class="nav-icon">✧</span>PEAC Assistant</a><a data-nav="feedback" href="#feedback"><span class="nav-icon">◇</span>Feedback</a><a data-nav="soon" href="#soon"><span class="nav-icon">◷</span>Coming soon</a><a class="admin-only" data-nav="settings" href="#settings"><span class="nav-icon">◎</span>Accounts<span class="nav-count" id="navSignupCount">0</span></a><a data-nav="settings" href="#settings"><span class="nav-icon">⚙</span>Settings</a></nav><div class="sidebar-bottom"><div class="sidebar-motto"><img alt="PEAC green ribbon" src="/ribbon.svg"/><p>Kindness, thoughtfully<br/>put into practice.</p></div><a class="public-link" href="/" rel="noopener" target="_blank">View public site ↗</a><div class="sidebar-user"><span class="user-avatar" id="userInitial">P</span><div><strong id="signedInName">PEAC team</strong><small id="signedInRole">Private workspace</small></div><button aria-label="Sign out" id="logoutButton" title="Sign out" type="button">↪</button></div></div></aside><a class="skip-link" href="#dashboardView">Skip to dashboard</a>
 <div class="page-shell">
 <header class="topbar">
 <div class="brand-wrap"><div><p class="eyebrow">Your community, connected</p><h1 id="consoleTitle">The kindness overview.</h1></div></div>
@@ -20,6 +20,47 @@
 </header>
 <div class="connection-strip"><p id="dataStatus" role="status">Connecting to PEAC...</p><span id="updatedAt">No data loaded</span></div>
 <noscript><p class="notice error">JavaScript is required to load and save PEAC data.</p></noscript>
+<section class="portal-panel hidden" data-portal-panel="home" id="homePanel" tabindex="-1">
+<div class="role-home-head">
+  <div>
+    <p class="eyebrow" id="roleHomeEyebrow">PEAC workspace</p>
+    <h2 id="roleHomeTitle">Welcome back.</h2>
+    <p id="roleHomeCopy">Your PEAC workspace is ready.</p>
+  </div>
+  <span class="role-pill" id="roleHomePill">Member</span>
+</div>
+<section class="admin-only admin-home-grid">
+  <article class="panel admin-approval-card">
+    <div class="panel-header"><div><p class="eyebrow small">Account approvals</p><h3>Approve new PEAC members</h3></div><span class="status-dot" id="homePendingCount">0 pending</span></div>
+    <p class="muted">New accounts cannot enter the private workspace until you approve them. Review the name and email, then approve or reject with one click.</p>
+    <div class="approval-list" id="adminHomeSignupList"></div>
+    <a class="text-btn" data-nav="settings" href="#settings">Manage all accounts →</a>
+  </article>
+  <article class="panel quick-actions-card">
+    <p class="eyebrow small">Admin shortcuts</p><h3>What do you want to manage?</h3>
+    <div class="home-action-grid">
+      <a data-nav="people" href="#people"><strong>Compliments</strong><span>Log and review weekly totals</span></a>
+      <a data-nav="lunch" href="#lunch"><strong>Lunch Buddies</strong><span>Review private requests</span></a>
+      <a data-nav="website" href="#website"><strong>Public website</strong><span>Edit PEAC public content</span></a>
+      <a data-nav="assistant" href="#assistant"><strong>PEAC Assistant</strong><span>Ask about PEAC records</span></a>
+    </div>
+  </article>
+</section>
+<section class="member-only member-home-grid">
+  <article class="panel member-welcome-card">
+    <p class="eyebrow small">Your PEAC account</p><h3>Your workspace is ready.</h3>
+    <p class="muted">Use the tools your PEAC team has enabled. Private records stay inside the authenticated PEAC workspace.</p>
+    <div class="home-action-grid">
+      <a data-nav="overview" href="#overview"><strong>Overview</strong><span>See current PEAC activity</span></a>
+      <a data-nav="people" href="#people"><strong>Compliments</strong><span>Log approved compliment data</span></a>
+      <a data-nav="lunch" href="#lunch"><strong>Lunch Buddies</strong><span>Work with request follow-up</span></a>
+      <a data-nav="assistant" href="#assistant"><strong>PEAC Assistant</strong><span>Ask grounded questions</span></a>
+    </div>
+  </article>
+  <article class="panel coming-member-card"><p class="eyebrow small">Coming soon</p><h3>More PEAC tools are on the way.</h3><p class="muted">Additional account features, collaboration tools, and role-specific options can be added here without changing the public website.</p></article>
+</section>
+<section class="panel home-coming"><p class="eyebrow small">More features coming soon</p><div class="coming-mini-grid"><div><strong>Personal activity</strong><span>Your recent PEAC work</span></div><div><strong>Team updates</strong><span>Simple internal updates</span></div><div><strong>Notifications</strong><span>Useful PEAC alerts</span></div></div></section>
+</section>
 <main class="dashboard" id="dashboardView" tabindex="-1"><section class="console-privacy-banner"><strong>Your PEAC records stay private.</strong><span>Application data stays in PEAC’s private server-side database and is not sent to third-party AI or advertising services.</span></section>
 <div class="console-hero-row"><section class="hero panel"><div aria-hidden="true" class="hero-art"><img alt="" src="/ribbon.svg"/></div>
 <div><p class="eyebrow">Welcome to your PEAC workspace</p><h2>Small moments.<br/><em>Meaningful impact.</em></h2><p>A clearer view of your records, your programs, and the people you support.</p></div>
