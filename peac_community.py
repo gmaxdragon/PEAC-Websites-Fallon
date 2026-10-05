@@ -4,6 +4,7 @@ All tables use the existing PEAC database. Public endpoints are allowlisted.
 from __future__ import annotations
 import hashlib
 import json
+import os
 import re
 import secrets
 import uuid
@@ -140,12 +141,20 @@ class CommunityService(Service):
         quote = DAILY_QUOTES[today.toordinal() % len(DAILY_QUOTES)]
         return {"text": quote, "date": day, "source": "PEAC daily quote"}
 
+    def lunch_is_enabled(self, config=None):
+        config = config or self.content()
+        if os.getenv("PEAC_FORCE_LUNCH_OPEN","0")=="1":
+            return True
+        return bool(config.get("lunch_enabled"))
+
     def public_content(self):
         config = self.content()
         # Do NOT return settings wholesale. The public site must not expose private IDs/emails.
-        return {key: config[key] for key in ("school_label", "about", "lunch_intro", "privacy_notice", "lunch_enabled")} | {
+        public = {key: config[key] for key in ("school_label", "about", "lunch_intro", "privacy_notice")}
+        public["lunch_enabled"] = self.lunch_is_enabled(config)
+        return public | {
             "compliments": "coming_soon", "today": self.today_fn().isoformat(), "quote": self.quote_of_day(),
-            "notice": "Hosted PEAC site." if __import__("os").getenv("PEAC_DEPLOY_MODE","").lower()=="hosted" else "Local preview. Public hosting is not configured.",
+            "notice": "Hosted PEAC site." if os.getenv("PEAC_DEPLOY_MODE","").lower()=="hosted" else "Local preview. Public hosting is not configured.",
         }
 
     def save_feedback(self, payload, source, user_id="public"):
@@ -211,8 +220,8 @@ class CommunityService(Service):
         cleaned["default_contact_ids"] = ids
         def update(db):
             self.check_contacts(db,ids)
-            if cleaned["lunch_enabled"] and not ids:
-                raise APIError("Select an approved coordinator before opening requests.")
+            # Lunch Buddies can operate as an in-app private queue even with no
+            # email-routing contacts configured. Contacts remain optional.
             db.execute("UPDATE portal_content SET payload=? WHERE id=1", (json.dumps(cleaned),))
             self.auth.audit(db,user["id"],"website.updated")
             return {"saved":True}
@@ -292,10 +301,10 @@ class CommunityService(Service):
                 if old["fingerprint"]!=fingerprint: raise APIError("Request key conflict.",409)
                 return {"ok":True,"reference":old["reference"],"replayed":True,"message":"Already received. No duplicate was created."}
             config=json.loads(db.execute("SELECT payload FROM portal_content WHERE id=1").fetchone()[0])
-            if not config["lunch_enabled"]: raise APIError("Lunch Buddies requests are currently paused. Please contact your school PEAC coordinator.",503)
+            if not self.lunch_is_enabled(config): raise APIError("Lunch Buddies requests are currently paused. Please contact your school PEAC coordinator.",503)
             ids=config["default_contact_ids"]
-            if not ids: raise APIError("No coordinator is configured. Requests are paused.",503)
-            self.check_contacts(db,ids)
+            if ids:
+                self.check_contacts(db,ids)
             db.execute("""INSERT INTO lunch_requests
                 (id,reference,preferred_name,email,grade,preferred_date,lunch_period,support,details,status,staff_note,created_at,updated_at)
                 VALUES(?,?,?,?,?,?,?,?,?,'new','',?,?)""",
@@ -311,7 +320,15 @@ class CommunityService(Service):
                         (str(uuid.uuid4()),matched_user_id,"lunch_buddy","Lunch Buddy request",
                          "A Lunch Buddies request named you as a preferred buddy. Open Lunch Buddies to review the request.",
                          "/console#lunch",stamp))
-            self.queue_contacts(db,identity,ids)
+            if ids:
+                self.queue_contacts(db,identity,ids)
+            # Always alert active administrators inside PEAC. Email routing is optional.
+            for admin in db.execute("SELECT id FROM portal_users WHERE active=1 AND role='admin'"):
+                db.execute("""INSERT INTO portal_notifications
+                    (id,user_id,kind,title,body,href,created_at,read_at) VALUES(?,?,?,?,?,?,?,'')""",
+                    (str(uuid.uuid4()),admin["id"],"lunch_request","New Lunch Buddies request",
+                     f"{ref} is waiting in the private Lunch Buddies queue.",
+                     "/console#lunch",stamp))
             db.execute("INSERT INTO lunch_receipts VALUES(?,?,?,?)",(digest,fingerprint,ref,stamp))
             db.execute("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'")
             self.auth.audit(db,"public","lunch.received",identity)
