@@ -114,6 +114,16 @@ class CommunityService(Service):
                     person_name TEXT NOT NULL, created_at TEXT NOT NULL, created_by TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS compliment_people_name ON compliment_people(person_name);\n                CREATE TABLE IF NOT EXISTS site_feedback (id TEXT PRIMARY KEY, source TEXT NOT NULL, message TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS lunch_buddy_preferences (
+                    request_id TEXT PRIMARY KEY REFERENCES lunch_requests(id) ON DELETE CASCADE,
+                    requested_name TEXT NOT NULL, matched_user_id TEXT NOT NULL DEFAULT ''
+                );
+                CREATE TABLE IF NOT EXISTS portal_notifications (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES portal_users(id) ON DELETE CASCADE,
+                    kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, href TEXT NOT NULL,
+                    created_at TEXT NOT NULL, read_at TEXT NOT NULL DEFAULT ''
+                );
+                CREATE INDEX IF NOT EXISTS portal_notifications_user ON portal_notifications(user_id, read_at, created_at);
             """)
             db.execute("INSERT OR IGNORE INTO portal_content VALUES(1,?)", (json.dumps(DEFAULT_CONTENT),))
             db.commit()
@@ -152,6 +162,33 @@ class CommunityService(Service):
         require_admin(user)
         with self.store.connection() as db:
             return [dict(r) for r in db.execute("SELECT id,source,message,created_by,created_at FROM site_feedback ORDER BY created_at DESC LIMIT 200")]
+
+    @staticmethod
+    def _match_name(value):
+        return " ".join(str(value or "").strip().casefold().split())
+
+    def _match_buddy_account(self, db, requested_name):
+        needle=self._match_name(requested_name)
+        if not needle: return ""
+        matches=[]
+        for row in db.execute("SELECT id,username,display_name FROM portal_users WHERE active=1"):
+            if needle in {self._match_name(row["username"]), self._match_name(row["display_name"])}:
+                matches.append(row["id"])
+        matches=list(dict.fromkeys(matches))
+        return matches[0] if len(matches)==1 else ""
+
+    def notifications(self, user):
+        with self.store.connection() as db:
+            rows=[dict(r) for r in db.execute(
+                "SELECT id,kind,title,body,href,created_at,read_at FROM portal_notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 100",
+                (user["id"],))]
+        return {"items":rows,"unread":sum(1 for r in rows if not r["read_at"])}
+
+    def mark_notifications_read(self, user):
+        stamp=now_iso()
+        with self.store.transaction() as db:
+            db.execute("UPDATE portal_notifications SET read_at=? WHERE user_id=? AND read_at=''",(stamp,user["id"]))
+        return {"ok":True}
 
     def contacts(self):
         with self.store.connection() as db:
@@ -215,7 +252,7 @@ class CommunityService(Service):
 
     def validate_request(self, payload):
         p=object_payload(payload)
-        allowed={"preferred_name","email","grade","preferred_date","lunch_period","support","details","consent","website"}
+        allowed={"preferred_name","email","grade","preferred_date","lunch_period","support","details","preferred_buddy","consent","website"}
         if set(p)-allowed: raise APIError("Unknown form field. Do not submit recipient email lists.")
         if p.get("website"): raise APIError("Please leave the website field empty.")
         if p.get("consent") is not True:
@@ -231,7 +268,7 @@ class CommunityService(Service):
         return {"preferred_name":text(p.get("preferred_name",""),"preferred name",60,True),
                 "email":email_address(p.get("email","")),"grade":grade,"preferred_date":day,
                 "lunch_period":text(p.get("lunch_period",""),"lunch period",60),
-                "support":p["support"],"details":text(p.get("details",""),"details",500)}
+                "support":p["support"],"details":text(p.get("details",""),"details",500),\n                "preferred_buddy":text(p.get("preferred_buddy",""),"preferred lunch buddy",80)}
 
     def submit_lunch(self, payload, key, peer):
         cleaned=self.validate_request(payload)
@@ -262,6 +299,17 @@ class CommunityService(Service):
                 (id,reference,preferred_name,email,grade,preferred_date,lunch_period,support,details,status,staff_note,created_at,updated_at)
                 VALUES(?,?,?,?,?,?,?,?,?,'new','',?,?)""",
                 (identity,ref,*[cleaned[k] for k in ("preferred_name","email","grade","preferred_date","lunch_period","support","details")],stamp,stamp))
+            requested_buddy=cleaned.get("preferred_buddy","")
+            if requested_buddy:
+                matched_user_id=self._match_buddy_account(db,requested_buddy)
+                db.execute("INSERT INTO lunch_buddy_preferences(request_id,requested_name,matched_user_id) VALUES(?,?,?)",
+                           (identity,requested_buddy,matched_user_id))
+                if matched_user_id:
+                    db.execute("""INSERT INTO portal_notifications
+                        (id,user_id,kind,title,body,href,created_at,read_at) VALUES(?,?,?,?,?,?,?,'')""",
+                        (str(uuid.uuid4()),matched_user_id,"lunch_buddy","Lunch Buddy request",
+                         "A Lunch Buddies request named you as a preferred buddy. Open Lunch Buddies to review the request.",
+                         "/console#lunch",stamp))
             self.queue_contacts(db,identity,ids)
             db.execute("INSERT INTO lunch_receipts VALUES(?,?,?,?)",(digest,fingerprint,ref,stamp))
             db.execute("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'")
@@ -282,6 +330,11 @@ class CommunityService(Service):
         with self.store.connection() as db:
             db.execute("BEGIN")
             requests=[dict(r) for r in db.execute("SELECT * FROM lunch_requests ORDER BY created_at DESC"+("" if full else " LIMIT 2000"))]
+            preferences={r["request_id"]:dict(r) for r in db.execute("SELECT request_id,requested_name,matched_user_id FROM lunch_buddy_preferences")}
+            for request in requests:
+                pref=preferences.get(request["id"],{})
+                request["preferred_buddy"]=pref.get("requested_name","")
+                request["matched_buddy_user_id"]=pref.get("matched_user_id","")
             outbox=[dict(r) for r in db.execute("""SELECT o.*,r.reference,c.label FROM lunch_outbox o
                 JOIN lunch_requests r ON r.id=o.request_id JOIN lunch_contacts c ON c.id=o.contact_id ORDER BY o.created_at DESC"""+("" if full else " LIMIT 4000"))]
             total=db.execute("SELECT COUNT(*) FROM lunch_requests").fetchone()[0]
