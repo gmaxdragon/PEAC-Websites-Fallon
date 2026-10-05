@@ -101,3 +101,22 @@ body.team-console{background:#f4f8f0;color:#1f4232;font-size:14px}.team-console 
 
 body[data-role=admin] .admin-home-grid{display:grid!important}
 body[data-role=coordinator] .member-home-grid{display:grid!important}
+
+/* v7.5 console polish */
+.team-console .page-shell{background:
+  radial-gradient(circle at 85% 2%,rgba(167,205,139,.11),transparent 24%),
+  radial-gradient(circle at 6% 24%,rgba(99,150,111,.08),transparent 22%)}
+.team-console .panel,.team-console .stat-card,.entry-mode,.home-action-grid a,.notification-row{transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease}
+.team-console .panel:hover,.team-console .stat-card:hover{box-shadow:0 12px 30px rgba(44,83,51,.07)}
+.home-action-grid a:hover,.entry-mode:hover{transform:translateY(-2px)}
+.console-privacy-banner{position:relative;overflow:hidden}
+.console-privacy-banner:after{content:"";position:absolute;inset:0 auto 0 -30%;width:22%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);transform:skewX(-20deg);animation:privacySweep 7s ease-in-out infinite}
+.assistant-mark{box-shadow:0 8px 20px rgba(54,102,65,.10);animation:assistantGlow 4s ease-in-out infinite}
+.chat-message.assistant{box-shadow:0 8px 20px rgba(47,94,57,.05)}
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.chat-suggestions button{border:1px solid #d7e5ce;background:#fff;border-radius:999px;padding:6px 10px;color:#58724d;font-size:.61rem}
+.chat-suggestions button:hover{background:#eaf4e2;border-color:#bcd3af}
+@keyframes privacySweep{0%,70%,100%{left:-35%}85%{left:115%}}
+@keyframes assistantGlow{0%,100%{transform:translateY(0);box-shadow:0 8px 20px rgba(54,102,65,.10)}50%{transform:translateY(-2px);box-shadow:0 12px 28px rgba(72,124,76,.16)}}
+html[data-motion=off] .console-privacy-banner:after,html[data-motion=off] .assistant-mark{animation:none!important}
+@media(prefers-reduced-motion:reduce){.console-privacy-banner:after,.assistant-mark{animation:none!important}}
