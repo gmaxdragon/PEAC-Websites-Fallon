@@ -78,3 +78,8 @@ html[data-motion=off] *,html[data-motion=off] *:before,html[data-motion=off] *:a
   .public-hero{grid-template-columns:1fr!important;gap:30px!important}
   .ribbon-scene.stable-ribbon-scene{width:min(520px,100%);justify-self:center;min-height:360px}
 }
+
+/* v7.2 privacy and presentation refinements */
+.privacy-promise{margin:-28px 0 34px;padding:14px 18px;border:1px solid #cfe2c7;border-radius:14px;background:#edf7e8;display:flex;gap:10px;align-items:baseline;color:#526f57;font-size:.74rem}
+.privacy-promise strong{color:#285a3d;white-space:nowrap}.feedback-section textarea{margin:14px 0 10px}.creator-credit{font-weight:700;color:#4f755d}
+@media(max-width:640px){.privacy-promise{margin:-12px 0 25px;display:block}.privacy-promise strong{display:block;margin-bottom:4px}}
