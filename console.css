@@ -120,3 +120,28 @@ body[data-role=coordinator] .member-home-grid{display:grid!important}
 @keyframes assistantGlow{0%,100%{transform:translateY(0);box-shadow:0 8px 20px rgba(54,102,65,.10)}50%{transform:translateY(-2px);box-shadow:0 12px 28px rgba(72,124,76,.16)}}
 html[data-motion=off] .console-privacy-banner:after,html[data-motion=off] .assistant-mark{animation:none!important}
 @media(prefers-reduced-motion:reduce){.console-privacy-banner:after,.assistant-mark{animation:none!important}}
+
+/* v7.6 simplified account home + PEACADMIN control center */
+.peacadmin-home,.standard-home{display:none}
+body[data-username="peacadmin"] .peacadmin-home{display:block}
+body[data-username]:not([data-username="peacadmin"]) .standard-home{display:block}
+body[data-username]:not([data-username="peacadmin"]) .home-notifications{display:none}
+.peacadmin-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.admin-focus-card{display:flex;flex-direction:column;gap:7px;min-height:190px}
+.admin-focus-card.urgent{background:linear-gradient(145deg,#eef5dd,#f9fbf4)!important}
+.admin-focus-number{font-size:2.45rem;line-height:1;font-weight:600;letter-spacing:-.05em;color:#2d6040;margin-top:6px}
+.admin-focus-card>span{font-size:.72rem;color:#5f7555}
+.admin-focus-card>small{font-size:.62rem;color:#8b9b81;line-height:1.5;margin-bottom:auto}
+.admin-new-requests{margin-top:16px}
+.admin-request-list{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.admin-request-row{width:100%;border:1px solid #dfe9d6;background:#f7faf3;border-radius:11px;padding:12px 13px;display:flex;align-items:center;gap:12px;text-align:left;color:#355a40}
+.admin-request-row:hover{background:#edf5e6;border-color:#bfd4b2}
+.admin-request-row>span:first-child{min-width:0;flex:1}
+.admin-request-row strong{display:block;font-size:.75rem}
+.admin-request-row small{display:block;font-size:.61rem;color:#879879;margin-top:3px}
+.simple-coming{margin-top:16px}
+.simple-coming h3{font-size:1.1rem}
+.simple-coming-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.simple-coming-grid .coming-member-card{min-height:170px}
+@media(max-width:860px){.peacadmin-summary-grid{grid-template-columns:1fr 1fr}.peacadmin-summary-grid .admin-focus-card:last-child{grid-column:1/-1}}
+@media(max-width:560px){.peacadmin-summary-grid,.simple-coming-grid{grid-template-columns:1fr}.peacadmin-summary-grid .admin-focus-card:last-child{grid-column:auto}}
