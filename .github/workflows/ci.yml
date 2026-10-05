@@ -37,6 +37,7 @@ jobs:
       - name: Hosted-mode health smoke test
         env:
           PEAC_DEPLOY_MODE: hosted
+          PEAC_HOST: 127.0.0.1
           PEAC_DB_PATH: /tmp/peac-ci.sqlite3
           PEAC_ADMIN_USERNAME: ci-admin
           PEAC_ADMIN_DISPLAY_NAME: CI Admin
@@ -45,7 +46,7 @@ jobs:
         run: |
           python peac.py --local-server >/tmp/peac.log 2>&1 &
           pid=$!
-          trap 'kill $pid || true' EXIT
+          trap 'kill $pid 2>/dev/null || true' EXIT
           for i in {1..30}; do
             if curl --fail --silent http://127.0.0.1:5000/api/health >/tmp/health.json; then
               cat /tmp/health.json
