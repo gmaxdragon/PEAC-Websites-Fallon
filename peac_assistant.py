@@ -17,8 +17,25 @@ def tokens(s):
     return {w for w in re.findall(r"[a-z0-9]+",s.lower()) if w not in stop and len(w)>1}
 
 
-def answer_question(service,question,user):
-    q=text(question,"question",800,True); lower=q.lower(); now=service.today_fn(); start=None; end=now
+def answer_question(service,question,user,history=None):
+    q=text(question,"question",800,True)
+    history = history if isinstance(history,list) else []
+    previous=""
+    for item in reversed(history[-8:]):
+        if isinstance(item,dict) and item.get("role")=="user" and isinstance(item.get("content"),str):
+            candidate=item["content"].strip()
+            if candidate and candidate!=q:
+                previous=candidate[:800]
+                break
+    domain_words={"compliment","count","grade","trash","verified","trend","growth","lunch","buddies","forecast","predict","model","note","campaign","poster","privacy","private","assistant","peac"}
+    q_words=tokens(q)
+    followup=bool(previous) and (
+        len(q.split())<=7 or
+        q.lower().startswith(("what about","how about","and ","same ","compare ","why ","so ")) or
+        not (q_words & domain_words)
+    )
+    analysis_q=(previous+" "+q) if followup else q
+    lower=analysis_q.lower(); now=service.today_fn(); start=None; end=now
     requested_range=False
     dates=re.findall(r"\b\d{4}-\d{2}-\d{2}\b",lower)
     if dates:
@@ -108,7 +125,25 @@ def answer_question(service,question,user):
                 lines.append(f"Grade {g}: {sum(r['count'] for r in filtered):,} recorded verified compliments. Unassigned counts are not assigned to a grade.")
             elif "grade" in lower:
                 lines.append("Grade totals: "+", ".join(f"{g}: {sum(r['count'] for r in rows if r['grade']==g):,}" for g in ("6","7","8","unassigned"))+".")
-            if "growth" in lower or "trend" in lower:
+            if "average" in lower:
+                days=max(1,len(set(r["date"] for r in rows)))
+                lines.append(f"Average across recorded dates: {n/days:.1f} verified compliments per recorded date.")
+            if any(t in lower for t in ["highest week","best week","top week"]):
+                weekly={}
+                for row in rows:
+                    wk=monday(date.fromisoformat(row["date"])).isoformat()
+                    weekly[wk]=weekly.get(wk,0)+row["count"]
+                if weekly:
+                    wk,value=max(weekly.items(),key=lambda x:x[1])
+                    lines.append(f"Highest recorded calendar week: {wk}, with {value:,} verified compliments.")
+            if any(t in lower for t in ["compare grade","compare grades","top grade","highest grade"]):
+                totals={g:sum(r["count"] for r in rows if r["grade"]==g) for g in ("6","7","8","unassigned")}
+                lines.append("Grade comparison: "+", ".join(f"{g}: {v:,}" for g,v in totals.items())+".")
+                ranked=[(v,g) for g,v in totals.items() if g!="unassigned"]
+                if ranked and max(ranked)[0]>0:
+                    value,g=max(ranked)
+                    lines.append(f"Grade {g} has the highest recorded verified total in this view: {value:,}.")
+            if "growth" in lower or "trend" in lower or "what changed" in lower:
                 w=service.dashboard()["compliments"]
                 if requested_range: lines.append("The completed-week comparison below uses the latest adjacent completed weeks, independently of your requested date range.")
                 lines.append(f"Completed-week change: {w['change']:+,} compliments." if w["change"] is not None else "Two adjacent completed weeks are needed for a completed-week change.")
@@ -133,14 +168,35 @@ def answer_question(service,question,user):
     turn=str(uuid.uuid4())
     with service.store.transaction() as db:
         db.execute("INSERT INTO assistant_turns VALUES(?,?,?,?,?)",(turn,user["id"],intent,json.dumps([s["id"] for s in sources]),now_iso()))
-    return {"id":turn,"answer":"\n\n".join(lines),"sources":sources,"mode":"grounded_local_retrieval",
-            "intent":intent,"period":period,"as_of":now_iso(),"notice":"Computed facts and approved knowledge. No paid AI, no automatic model training. Questions are not saved."}
+    suggestions={
+        "counts":["Compare grades","What was the highest week?","What changed recently?"],
+        "lunch":["How do Lunch Buddies requests work?","How many requests are new?"],
+        "lunch_help":["How many Lunch Buddies requests are new?","How private is PEAC?"],
+        "forecast":["What changed recently?","How many verified compliments this month?"],
+        "notes":["Find recent notes","What campaigns are recorded?"],
+        "campaigns":["Which campaign has the highest attribution?","Find recent notes"],
+        "privacy":["What can PEAC Assistant help with?","How do Lunch Buddies requests work?"],
+        "about":["How private is PEAC?","What can PEAC Assistant help with?"],
+        "approved_faq":["What can PEAC Assistant help with?"],
+    }.get(intent,["How many verified compliments this month?","How do Lunch Buddies requests work?","How private is PEAC?"])
+    return {"id":turn,"answer":"\n\n".join(lines),"sources":sources,"mode":"grounded_contextual_retrieval",
+            "intent":intent,"period":period,"as_of":now_iso(),"context_used":followup,"suggestions":suggestions,
+            "notice":"Computed facts and approved knowledge. No external AI API, no automatic model training. Questions and browser conversation context are not stored."}
 
 
 def assistant_dispatch(service,method,path,payload,key,user):
     if path=="/api/portal/assistant/ask" and method=="POST":
         service.auth.rate_limit("assistant:"+user["id"],40,60)
-        return answer_question(service,object_payload(payload).get("question"),user),200
+        p=object_payload(payload)
+        history=p.get("history",[])
+        if not isinstance(history,list) or len(history)>8:
+            raise APIError("Assistant history must be a short list.")
+        cleaned=[]
+        for item in history:
+            if not isinstance(item,dict) or item.get("role") not in {"user","assistant"} or not isinstance(item.get("content"),str):
+                raise APIError("Invalid assistant history.")
+            cleaned.append({"role":item["role"],"content":item["content"][:800]})
+        return answer_question(service,p.get("question"),user,cleaned),200
     if path=="/api/portal/assistant/feedback" and method=="POST":
         p=object_payload(payload);rating=p.get("rating");tid=p.get("turn_id")
         if not isinstance(rating,str) or rating not in {"helpful","needs_work"}: raise APIError("Choose helpful or needs_work.")
