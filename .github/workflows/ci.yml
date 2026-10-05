@@ -55,37 +55,59 @@ jobs:
             fi
             sleep 1
           done
-          curl --fail --silent http://127.0.0.1:5000/api/public/config >/tmp/config.json
           python - <<'PY'
-          import json
-          data=json.load(open('/tmp/config.json'))
-          assert data['lunch_enabled'] is True, data
-          PY
-          today=$(date +%F)
-          curl --fail --silent -X POST http://127.0.0.1:5000/api/public/lunch             -H 'Content-Type: application/json'             -H 'X-PEAC-Client: 1'             -H 'Idempotency-Key: ci-lunch-request-1234567890'             -d "{\"preferred_name\":\"CI Student\",\"email\":\"ci.student@example.com\",\"grade\":\"8\",\"preferred_date\":\"$today\",\"lunch_period\":\"Lunch\",\"support\":\"company\",\"details\":\"CI smoke test\",\"preferred_buddy\":\"CI Admin\",\"consent\":true,\"website\":\"\"}" >/tmp/lunch.json
-          python - <<'PY'
-          import json
-          data=json.load(open('/tmp/lunch.json'))
-          assert data['ok'] is True and data['reference'].startswith('LB-'), data
-          PY
-          curl --fail --silent -c /tmp/peac.cookies -X POST http://127.0.0.1:5000/api/auth/login             -H 'Content-Type: application/json' -H 'X-PEAC-Client: 1'             -d '{"username":"ci-admin","password":"CI-only-password-12345"}' >/tmp/login.json
-          csrf=$(python - <<'PY'
-          import json
-          print(json.load(open('/tmp/login.json'))['csrf'])
-          PY
-          )
-          curl --fail --silent -b /tmp/peac.cookies http://127.0.0.1:5000/api/portal/lunch >/tmp/queue.json
-          curl --fail --silent -b /tmp/peac.cookies http://127.0.0.1:5000/api/portal/notifications >/tmp/notifications.json
-          curl --fail --silent -b /tmp/peac.cookies -X POST http://127.0.0.1:5000/api/portal/assistant/ask             -H 'Content-Type: application/json' -H 'X-PEAC-Client: 1' -H "X-CSRF-Token: $csrf"             -d '{"question":"what about last week?","history":[{"role":"user","content":"How many verified compliments this month?"}]}' >/tmp/assistant.json
-          python - <<'PY'
-          import json
-          q=json.load(open('/tmp/queue.json'))
-          n=json.load(open('/tmp/notifications.json'))
-          a=json.load(open('/tmp/assistant.json'))
-          assert len(q['requests']) == 1, q
-          assert q['requests'][0]['preferred_buddy'] == 'CI Admin', q
-          assert q['requests'][0]['matched_buddy_user_id'], q
-          assert n['unread'] >= 1, n
-          assert a['context_used'] is True, a
-          assert isinstance(a.get('suggestions'), list) and a['suggestions'], a
+          import json, os
+          from datetime import date
+          from pathlib import Path
+          from peac_community import CommunityService
+          from portal_server import PortalRouter
+
+          db=Path('/tmp/peac-flow.sqlite3')
+          if db.exists(): db.unlink()
+          service=CommunityService(db)
+          service.auth.create_user({
+              "username":"ci-admin","display_name":"CI Admin",
+              "password":"CI-only-password-12345","role":"admin"
+          },"ci")
+          router=PortalRouter(service,Path('.'))
+          host="ci.local"
+          base={"Host":host}
+          write={**base,"Origin":"https://"+host,"X-PEAC-Client":"1","Content-Type":"application/json"}
+
+          def call(method,path,headers=None,payload=None):
+              body=b"" if payload is None else json.dumps(payload).encode()
+              status,data,mime,extra=router.handle(method,path,headers or base,"127.0.0.1","https",body)
+              parsed=json.loads(data) if data else None
+              return status,parsed,extra
+
+          status,config,_=call("GET","/api/public/config")
+          assert status==200 and config["lunch_enabled"] is True, config
+
+          status,lunch,_=call("POST","/api/public/lunch",
+              {**write,"Idempotency-Key":"ci-lunch-request-1234567890"},
+              {"preferred_name":"CI Student","email":"ci.student@example.com","grade":"8",
+               "preferred_date":date.today().isoformat(),"lunch_period":"Lunch","support":"company",
+               "details":"CI smoke test","preferred_buddy":"CI Admin","consent":True,"website":""})
+          assert status==201 and lunch["reference"].startswith("LB-"), lunch
+
+          status,login,extra=call("POST","/api/auth/login",write,
+              {"username":"ci-admin","password":"CI-only-password-12345"})
+          assert status==200, login
+          cookie=extra["Set-Cookie"].split(";",1)[0]
+          private={**base,"Cookie":cookie}
+          private_write={**write,"Cookie":cookie,"X-CSRF-Token":login["csrf"]}
+
+          status,queue,_=call("GET","/api/portal/lunch",private)
+          status2,notifications,_=call("GET","/api/portal/notifications",private)
+          status3,assistant,_=call("POST","/api/portal/assistant/ask",private_write,
+              {"question":"what about last week?",
+               "history":[{"role":"user","content":"How many verified compliments this month?"}]})
+          assert status==status2==status3==200
+          assert len(queue["requests"])==1, queue
+          assert queue["requests"][0]["preferred_buddy"]=="CI Admin", queue
+          assert queue["requests"][0]["matched_buddy_user_id"], queue
+          assert notifications["unread"]>=1, notifications
+          assert assistant["context_used"] is True, assistant
+          assert isinstance(assistant.get("suggestions"),list) and assistant["suggestions"], assistant
+          print("PEAC end-to-end smoke test passed")
           PY
