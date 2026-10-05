@@ -268,7 +268,8 @@ class CommunityService(Service):
         return {"preferred_name":text(p.get("preferred_name",""),"preferred name",60,True),
                 "email":email_address(p.get("email","")),"grade":grade,"preferred_date":day,
                 "lunch_period":text(p.get("lunch_period",""),"lunch period",60),
-                "support":p["support"],"details":text(p.get("details",""),"details",500),\n                "preferred_buddy":text(p.get("preferred_buddy",""),"preferred lunch buddy",80)}
+                "support":p["support"],"details":text(p.get("details",""),"details",500),
+                "preferred_buddy":text(p.get("preferred_buddy",""),"preferred lunch buddy",80)}
 
     def submit_lunch(self, payload, key, peer):
         cleaned=self.validate_request(payload)
