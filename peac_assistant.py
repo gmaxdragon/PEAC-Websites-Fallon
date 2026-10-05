@@ -142,6 +142,11 @@ def assistant_dispatch(service,method,path,payload,key,user):
                 DO UPDATE SET rating=excluded.rating,suggestion=excluded.suggestion""",
                 (str(uuid.uuid4()),tid,user["id"],rating,suggestion,now_iso()))
         return {"ok":True,"notice":"Feedback saved for administrator review, not automatically used as knowledge."},200
+    if path=="/api/portal/assistant/faqs" and method=="GET":
+        with service.store.connection() as db:
+            return [{"id":r["id"],"question":r["question"]} for r in db.execute(
+                "SELECT id,question FROM assistant_knowledge WHERE approved=1 ORDER BY question"
+            )],200
     if path=="/api/portal/assistant/usage" and method=="GET":
         require_admin(user)
         with service.store.connection() as db:
