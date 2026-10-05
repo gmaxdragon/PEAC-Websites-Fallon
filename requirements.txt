@@ -1,4 +1,6 @@
--r requirements-core.txt
--r requirements-excel.txt
+numpy>=1.24,<3
+tzdata>=2025.2
+openpyxl>=3.1.5,<4
+defusedxml>=0.7.1,<1
 Flask>=3.1.3,<4
 gunicorn>=23,<24
