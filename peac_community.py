@@ -393,6 +393,10 @@ class CommunityService(Service):
         if not user: raise APIError("Sign in to the PEAC console.",401)
         if path in {"/api/export","/api/backup.sqlite3","/api/portal/export"} or (method=="DELETE" and path=="/api/compliments") or (path=="/api/compliments/bulk" and isinstance(payload,dict) and payload.get("replace")):
             require_admin(user)
+        if path=="/api/portal/notifications" and method=="GET":
+            return self.notifications(user),200
+        if path=="/api/portal/notifications/read" and method=="POST":
+            return self.mark_notifications_read(user),200
         if path=="/api/portal/summary" and method=="GET":
             with self.store.connection() as db:
                 total=db.execute("SELECT COUNT(*) FROM lunch_requests").fetchone()[0]
