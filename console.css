@@ -78,3 +78,12 @@ body.team-console{background:#f4f8f0;color:#1f4232;font-size:14px}.team-console 
   .team-console .hero-art{right:5%!important;width:125px!important;height:125px!important;opacity:.52!important}
   .team-console .hero-art img{width:60px!important;max-height:96px!important}
 }
+
+/* v7.2 tighter hero composition and privacy surfaces */
+.console-privacy-banner{border:1px solid #cfe1c4;background:#eaf5e3;border-radius:13px;padding:12px 16px;display:flex;gap:10px;align-items:baseline;font-size:.68rem;color:#617958}
+.console-privacy-banner strong{color:#2c5c3c;white-space:nowrap}
+.team-console .hero{min-height:178px;padding-top:21px;padding-bottom:21px}
+.team-console .hero .eyebrow{margin-bottom:8px}
+.team-console .hero h2{font-size:2.48rem}
+.privacy-inline{margin:13px 0}.creator-credit{font-weight:700;color:#4f755d}
+@media(max-width:640px){.console-privacy-banner{display:block}.console-privacy-banner strong{display:block;margin-bottom:4px}.team-console .hero{min-height:195px}}
