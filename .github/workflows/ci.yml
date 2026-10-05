@@ -44,6 +44,7 @@ jobs:
           PEAC_ADMIN_PASSWORD: "CI-only-password-12345"
           PEAC_PORT: "5000"
           PEAC_FORCE_LUNCH_OPEN: "1"
+          PEAC_ALLOWED_HOSTS: "ci.local"
         run: |
           python peac.py --local-server >/tmp/peac.log 2>&1 &
           pid=$!
