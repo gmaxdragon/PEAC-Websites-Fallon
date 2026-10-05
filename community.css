@@ -83,3 +83,24 @@ html[data-motion=off] *,html[data-motion=off] *:before,html[data-motion=off] *:a
 .privacy-promise{margin:-28px 0 34px;padding:14px 18px;border:1px solid #cfe2c7;border-radius:14px;background:#edf7e8;display:flex;gap:10px;align-items:baseline;color:#526f57;font-size:.74rem}
 .privacy-promise strong{color:#285a3d;white-space:nowrap}.feedback-section textarea{margin:14px 0 10px}.creator-credit{font-weight:700;color:#4f755d}
 @media(max-width:640px){.privacy-promise{margin:-12px 0 25px;display:block}.privacy-promise strong{display:block;margin-bottom:4px}}
+
+/* v7.5 visual polish */
+body{background:
+  radial-gradient(circle at 12% 8%,rgba(121,180,118,.12),transparent 28%),
+  radial-gradient(circle at 88% 18%,rgba(193,218,154,.15),transparent 26%),
+  linear-gradient(180deg,#f9fcf6 0%,#f4f8f0 100%)}
+.public-topbar{position:sticky;top:0;z-index:12;background:rgba(247,250,245,.86);backdrop-filter:blur(14px);border-bottom-color:rgba(189,211,190,.7)}
+.public-hero>div:first-child{position:relative;z-index:3}
+.public-hero:before{content:"";position:absolute;left:-8%;top:9%;width:290px;height:290px;border-radius:50%;background:radial-gradient(circle,rgba(123,176,111,.15),transparent 66%);filter:blur(8px);pointer-events:none}
+.ribbon-scene{box-shadow:inset 0 0 0 1px rgba(255,255,255,.45),0 24px 60px rgba(39,91,58,.08)}
+.stable-ribbon-scene .ribbon-orbit{box-shadow:0 0 0 14px rgba(255,255,255,.22),0 26px 70px rgba(54,106,64,.10)!important}
+.stable-ribbon-scene .ribbon-orbit:after{content:"";position:absolute;inset:-18px;border-radius:50%;border:1px solid rgba(100,150,93,.18);animation:peacPulse 5.5s ease-in-out infinite}
+.public-panel,.coming-card,.about-card,.lunch-intro{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.public-panel:hover,.coming-card:hover,.about-card:hover,.lunch-intro:hover{transform:translateY(-2px);box-shadow:0 16px 38px rgba(30,72,45,.08);border-color:#cbdcc7}
+.btn.primary{position:relative;overflow:hidden}
+.btn.primary:after{content:"";position:absolute;inset:-40% auto -40% -30%;width:24%;transform:skewX(-18deg);background:rgba(255,255,255,.18);transition:left .45s ease}
+.btn.primary:hover:after{left:118%}
+.privacy-promise{box-shadow:0 8px 24px rgba(42,91,57,.06)}
+@keyframes peacPulse{0%,100%{transform:scale(.98);opacity:.35}50%{transform:scale(1.04);opacity:.75}}
+html[data-motion=off] .stable-ribbon-scene .ribbon-orbit:after{animation:none!important}
+@media(prefers-reduced-motion:reduce){.stable-ribbon-scene .ribbon-orbit:after{animation:none!important}}
