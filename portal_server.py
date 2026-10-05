@@ -88,7 +88,7 @@ class PortalRouter:
             return self.json_response(result,200,{"Set-Cookie":cookie})
         if path=="/api/auth/signup" and verb=="POST":
             return self.json_response(self.service.auth.request_signup(payload,peer),201)
-        if path=="/api/public/lunch" and verb=="POST":
+        if path=="/api/public/feedback" and verb=="POST":\n            return self.json_response(self.service.save_feedback(payload,"public","public"),201)\n        if path=="/api/public/lunch" and verb=="POST":
             result=self.service.submit_lunch(payload,headers.get("Idempotency-Key",""),peer)
             return self.json_response(result,200 if result.get("replayed") else 201)
         session=self.service.auth.session(headers.get("Cookie",""))
@@ -104,7 +104,7 @@ class PortalRouter:
         if path=="/api/auth/logout" and verb=="POST":
             self.service.auth.logout(headers.get("Cookie",""))
             return self.json_response({"ok":True},200,{"Set-Cookie":f"{COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0" + ("; Secure" if HOSTED else "")})
-        if verb=="GET" and path in PRIVATE_FILES: return self.asset(PRIVATE_FILES[path])
+        if verb=="GET" and path in PRIVATE_FILES: return self.asset(PRIVATE_FILES[path])\n        if path=="/api/portal/site-feedback" and verb=="GET": return self.json_response(self.service.feedback_items(user))\n        if path=="/api/portal/site-feedback" and verb=="POST": return self.json_response(self.service.save_feedback(payload,"private",user["id"]),201)
         if path=="/api/backup.sqlite3" and verb=="GET":
             require_admin(user)
             from peac_backup import backup_bytes
