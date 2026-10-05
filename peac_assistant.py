@@ -46,6 +46,15 @@ def answer_question(service,question,user):
     if any(t in lower for t in ["password","secret","token","smtp credential"]):
         lines=["I do not reveal passwords, session tokens, SMTP credentials, or contact directories. Use Settings for approved account and routing changes."]
         intent="restricted"
+    elif any(t in lower for t in ["privacy","private","third-party ai","external ai"]):
+        lines=["PEAC keeps application records in its private server-side database. The browser is restricted to same-origin connections, and PEAC Assistant does not send your PEAC records to an external AI API. Administrators should still follow school rules for student data and account access."]
+        intent="privacy"
+        sources=[{"label":"PEAC privacy controls","href":"/console#settings","id":"privacy"}]
+    elif ("lunch" in lower or "buddies" in lower) and any(t in lower for t in ["how do","how does","how work","what is"]):
+        lines=["Lunch Buddies lets a student submit a private request with a preferred date, support type, and an optional preferred buddy. Authorized PEAC members review the request and arrange the next step. A preferred date is not automatically confirmed."]
+        lines.append("If an optional preferred buddy exactly matches one active PEAC username or display name, that member receives a private in-app notification. The public form never reveals whether a match exists.")
+        intent="lunch_help"
+        sources=[{"label":"Lunch Buddies","href":"/console#lunch","id":"lunch_help"}]
     elif "lunch" in lower or "buddies" in lower or re.search(r"lb-[a-f0-9]{12}",lower):
         intent="lunch";reference=re.search(r"lb-[a-f0-9]{12}",lower)
         with service.store.connection() as db:
@@ -143,10 +152,16 @@ def assistant_dispatch(service,method,path,payload,key,user):
                 (str(uuid.uuid4()),tid,user["id"],rating,suggestion,now_iso()))
         return {"ok":True,"notice":"Feedback saved for administrator review, not automatically used as knowledge."},200
     if path=="/api/portal/assistant/faqs" and method=="GET":
+        builtins=[
+            {"id":"builtin-privacy","question":"How private is PEAC?"},
+            {"id":"builtin-lunch","question":"How do Lunch Buddies requests work?"},
+            {"id":"builtin-assistant","question":"What can PEAC Assistant help with?"},
+        ]
         with service.store.connection() as db:
-            return [{"id":r["id"],"question":r["question"]} for r in db.execute(
+            custom=[{"id":r["id"],"question":r["question"]} for r in db.execute(
                 "SELECT id,question FROM assistant_knowledge WHERE approved=1 ORDER BY question"
-            )],200
+            )]
+        return builtins+custom,200
     if path=="/api/portal/assistant/usage" and method=="GET":
         require_admin(user)
         with service.store.connection() as db:
