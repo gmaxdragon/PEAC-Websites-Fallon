@@ -1,0 +1,9 @@
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60 wsgi:app"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
