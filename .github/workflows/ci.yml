@@ -115,7 +115,7 @@ jobs:
 
           status6,manual_entry,_=call("POST","/api/portal/lunch/manual",
               {**private_write,"Idempotency-Key":"ci-manual-lunch-1234567890"},
-              {"date":date.today().isoformat(),"grade":"7","lunch_period":"Lunch B","count":2,"note":"Offline lunch buddies"})
+              {"date":service.today_fn().isoformat(),"grade":"7","lunch_period":"Lunch B","count":2,"note":"Offline lunch buddies"})
           assert status6==201 and manual_entry["count"]==2, manual_entry
 
           status7,dashboard,_=call("GET","/api/dashboard",private)
