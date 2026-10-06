@@ -88,13 +88,8 @@ jobs:
               {**write,"Idempotency-Key":"ci-lunch-request-1234567890"},
               {"preferred_name":"CI Student","email":"ci.student@example.com","grade":"8",
                "preferred_date":date.today().isoformat(),"lunch_period":"Lunch A","support":"custom",
-               "details":"Eat lunch and talk during Lunch A","preferred_buddy":"CI Admin","consent":True,"website":""})
+               "details":"Eat lunch and talk during Lunch A","consent":True,"website":""})
           assert status==201 and lunch["reference"].startswith("LB-"), lunch
-
-          status,signup,_=call("POST","/api/auth/signup",write,
-              {"username":"ci-member","display_name":"CI Member","email":"ci.member@example.com",
-               "password":"CI-member-password-12345"})
-          assert status==201 and signup["status"]=="pending", signup
 
           status,login,extra=call("POST","/api/auth/login",write,
               {"username":"ci-admin","password":"CI-only-password-12345"})
@@ -105,24 +100,18 @@ jobs:
 
           status,queue,_=call("GET","/api/portal/lunch",private)
           status2,notifications,_=call("GET","/api/portal/notifications",private)
-          status_signup,pending_signups,_=call("GET","/api/portal/signup-requests",private)
-          assert status_signup==200 and len(pending_signups)==1, pending_signups
-          assert pending_signups[0]["username"]=="ci-member", pending_signups
-
-          status_approve,approved,_=call("POST","/api/portal/signup-requests/"+pending_signups[0]["id"]+"/approve",private_write,{})
-          assert status_approve==200 and approved["ok"] is True, approved
-
-          status_member,member_login,_=call("POST","/api/auth/login",write,
-              {"username":"ci-member","password":"CI-member-password-12345"})
-          assert status_member==200 and member_login["user"]["username"]=="ci-member", member_login
-
           status3,assistant,_=call("POST","/api/portal/assistant/ask",private_write,
               {"question":"what about last week?",
                "history":[{"role":"user","content":"How many verified compliments this month?"}]})
           assert status==status2==status3==200
           assert len(queue["requests"])==1, queue
-          assert queue["requests"][0]["preferred_buddy"]=="CI Admin", queue
-          assert queue["requests"][0]["matched_buddy_user_id"], queue
+          request=queue["requests"][0]
+          assert request["status"]=="new", request
+          status4,approved_request,_=call("PUT","/api/portal/lunch/"+request["id"],private_write,
+              {"status":"approved","staff_note":"","version":request["version"]})
+          assert status4==200 and approved_request["version"]==request["version"]+1, approved_request
+          status5,queue_after,_=call("GET","/api/portal/lunch",private)
+          assert status5==200 and queue_after["requests"][0]["status"]=="approved", queue_after
           assert notifications["unread"]>=1, notifications
           assert assistant["context_used"] is True, assistant
           assert isinstance(assistant.get("suggestions"),list) and assistant["suggestions"], assistant
