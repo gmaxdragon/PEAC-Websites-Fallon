@@ -87,9 +87,14 @@ jobs:
           status,lunch,_=call("POST","/api/public/lunch",
               {**write,"Idempotency-Key":"ci-lunch-request-1234567890"},
               {"preferred_name":"CI Student","email":"ci.student@example.com","grade":"8",
-               "preferred_date":date.today().isoformat(),"lunch_period":"Lunch","support":"company",
-               "details":"CI smoke test","preferred_buddy":"CI Admin","consent":True,"website":""})
+               "preferred_date":date.today().isoformat(),"lunch_period":"Lunch A","support":"custom",
+               "details":"Eat lunch and talk during Lunch A","preferred_buddy":"CI Admin","consent":True,"website":""})
           assert status==201 and lunch["reference"].startswith("LB-"), lunch
+
+          status,signup,_=call("POST","/api/auth/signup",write,
+              {"username":"ci-member","display_name":"CI Member","email":"ci.member@example.com",
+               "password":"CI-member-password-12345"})
+          assert status==201 and signup["status"]=="pending", signup
 
           status,login,extra=call("POST","/api/auth/login",write,
               {"username":"ci-admin","password":"CI-only-password-12345"})
@@ -100,6 +105,17 @@ jobs:
 
           status,queue,_=call("GET","/api/portal/lunch",private)
           status2,notifications,_=call("GET","/api/portal/notifications",private)
+          status_signup,pending_signups,_=call("GET","/api/portal/signup-requests",private)
+          assert status_signup==200 and len(pending_signups)==1, pending_signups
+          assert pending_signups[0]["username"]=="ci-member", pending_signups
+
+          status_approve,approved,_=call("POST","/api/portal/signup-requests/"+pending_signups[0]["id"]+"/approve",private_write,{})
+          assert status_approve==200 and approved["ok"] is True, approved
+
+          status_member,member_login,_=call("POST","/api/auth/login",write,
+              {"username":"ci-member","password":"CI-member-password-12345"})
+          assert status_member==200 and member_login["user"]["username"]=="ci-member", member_login
+
           status3,assistant,_=call("POST","/api/portal/assistant/ask",private_write,
               {"question":"what about last week?",
                "history":[{"role":"user","content":"How many verified compliments this month?"}]})
