@@ -1,8 +1,8 @@
 "use strict";
 (() => {
  const $=id=>document.getElementById(id),auth=window.PEACSession;
- const names={home:'Your PEAC home.',overview:'The kindness overview.',reports:'Your impact, in perspective.',people:'Log compliments.',lunch:'A place at the table.',website:'Your public welcome.',assistant:'Ask PEAC Assistant.',feedback:'Help improve PEAC.',soon:'More good things ahead.',settings:'A trustworthy workspace.'};
- let section='home',queue=null,selected=null,editingContact=null,config=null,mailEnabled=false,assistantHistory=[];
+ const names={home:'Your PEAC home.',overview:'The kindness overview.',reports:'Your impact, in perspective.',people:'Log compliments.',lunch:'A place at the table.',contacts:'Your contact book.',website:'Your public welcome.',assistant:'Ask PEAC Assistant.',feedback:'Help improve PEAC.',soon:'More good things ahead.',settings:'A trustworthy workspace.'};
+ let section='home',queue=null,selected=null,editingContact=null,editingPeacContact=null,contactBook=null,config=null,mailEnabled=false,assistantHistory=[];
  const busy=new Set();
  const node=(tag,cls='',text='')=>{const n=document.createElement(tag);n.className=cls;n.textContent=text;return n;};
  function say(id,message,bad=false){const n=$(id);if(n){n.textContent=message;n.classList.toggle('error',bad);}}
@@ -13,6 +13,7 @@
    if(name==='home')loadHome().catch(e=>say('dataStatus',e.message,true));
    if(name==='people')loadPeople().catch(e=>say('peopleStatus',e.message,true));
    if(name==='lunch')loadLunch().catch(e=>say('lunchQueueStatus',e.message,true));
+   if(name==='contacts')loadPeacContacts().catch(e=>say('peacContactStatus',e.message,true));
    if(name==='website')loadWebsite().catch(e=>say('websiteStatus',e.message,true));
    if(name==='assistant'){loadAssistantFaqs().catch(e=>say('chatStatus',e.message,true));if(auth.state.user?.role==='admin'){loadKnowledge().catch(e=>say('faqStatus',e.message,true));loadUsage().catch(e=>say('faqStatus',e.message,true));}}
    if(name==='settings'&&auth.state.user?.role==='admin')loadUsers().catch(e=>say('userStatus',e.message,true));
@@ -104,6 +105,44 @@
    selected=null;$('lunchDetail').classList.add('hidden');$('lunchEmpty').classList.remove('hidden');
    await loadLunch();await overview();say('requestSaveStatus','Approved.');
  });});
+ async function loadPeacContacts(){
+   contactBook=await auth.api('/api/portal/contact-book');
+   renderPeacContacts();
+ }
+ function peacContactRow(contact,editable=false){
+   const row=node('div','contact-row'),info=node('div');
+   const details=[contact.email,contact.phone,contact.visibility==='public'?'public':'private'].filter(Boolean).join(' · ');
+   info.append(node('strong','',contact.name),node('small','',details||'No contact details'));
+   if(contact.note)info.append(node('small','',contact.note));
+   row.append(info);
+   if(editable){
+     const edit=node('button','','Edit'),remove=node('button','','Delete');edit.type=remove.type='button';
+     edit.addEventListener('click',()=>{editingPeacContact=contact;$('peacContactName').value=contact.name;$('peacContactEmail').value=contact.email||'';$('peacContactPhone').value=contact.phone||'';$('peacContactNote').value=contact.note||'';if($('peacContactPublic'))$('peacContactPublic').checked=contact.visibility==='public';$('savePeacContact').textContent='Save changes';$('cancelPeacContactEdit').classList.remove('hidden');$('peacContactName').focus();});
+     remove.addEventListener('click',async()=>{if(!confirm('Delete this contact?'))return;try{await auth.mutate('peac-contact-delete:'+contact.id,'/api/portal/contact-book/'+contact.id,'DELETE',{confirm:'DELETE CONTACT'});await loadPeacContacts();say('peacContactStatus','Contact deleted.');}catch(e){say('peacContactStatus',e.message,true);}});
+     row.append(edit,remove);
+   }
+   return row;
+ }
+ function renderPeacContacts(){
+   if(!contactBook)return;
+   const mine=$('myPeacContacts'),published=$('publishedPeacContacts');mine.replaceChildren();published.replaceChildren();
+   if(!contactBook.mine.length)mine.append(node('p','muted','No personal contacts yet.'));
+   else for(const contact of contactBook.mine)mine.append(peacContactRow(contact,true));
+   if(!contactBook.public.length)published.append(node('p','muted','No public PEAC contacts have been published yet.'));
+   else for(const contact of contactBook.public)published.append(peacContactRow(contact,false));
+ }
+ function clearPeacContactForm(){
+   editingPeacContact=null;$('peacContactForm').reset();$('savePeacContact').textContent='Save contact';$('cancelPeacContactEdit').classList.add('hidden');
+ }
+ $('peacContactForm')?.addEventListener('submit',e=>{e.preventDefault();if(!e.currentTarget.reportValidity())return;work('savePeacContact','peacContactStatus',async()=>{
+   const payload={name:$('peacContactName').value.trim(),email:$('peacContactEmail').value.trim(),phone:$('peacContactPhone').value.trim(),note:$('peacContactNote').value.trim(),visibility:(auth.state.user?.role==='admin'&&$('peacContactPublic')?.checked)?'public':'private'};
+   const path='/api/portal/contact-book'+(editingPeacContact?'/'+editingPeacContact.id:'');
+   await auth.mutate('peac-contact',path,editingPeacContact?'PUT':'POST',payload);
+   clearPeacContactForm();await loadPeacContacts();say('peacContactStatus','Contact saved.');
+ });});
+ $('cancelPeacContactEdit')?.addEventListener('click',()=>clearPeacContactForm());
+ $('reloadPeacContacts')?.addEventListener('click',()=>work('reloadPeacContacts','peacContactStatus',loadPeacContacts));
+
  async function loadWebsite(){[config,queue]=await Promise.all([auth.api('/api/portal/content'),auth.api('/api/portal/lunch')]);$('schoolLabel').value=config.school_label;$('aboutEditor').value=config.about;$('lunchIntroEditor').value=config.lunch_intro;$('privacyEditor').value=config.privacy_notice;$('lunchEnabled').checked=config.lunch_enabled;recipientPicker('defaultRecipients',queue.contacts,config.default_contact_ids);renderContacts();}
  function renderContacts(){const wrap=$('contactList');wrap.replaceChildren();for(const c of queue.contacts){const row=node('div','contact-row'),info=node('div');info.append(node('strong','',c.label+(c.active?'':' (inactive)')),node('small','',c.email));row.append(info);const edit=node('button','','Edit');edit.type='button';edit.addEventListener('click',()=>{editingContact=c;$('contactLabel').value=c.label;$('contactEmail').value=c.email;$('saveContact').textContent='Save contact changes';$('contactLabel').focus();say('contactStatus','Editing this saved contact.');});const toggle=node('button','',c.active?'Disable':'Enable');toggle.type='button';toggle.addEventListener('click',async()=>{if(c.active&&!confirm('Disable this approved recipient? Removing the last default recipient pauses public requests.'))return;try{await auth.mutate('toggle-contact:'+c.id,'/api/portal/contacts/'+c.id,'PUT',{label:c.label,email:c.email,active:!c.active});await loadWebsite();say('contactStatus','Contact updated.');}catch(e){say('contactStatus',e.message,true);}});row.append(edit,toggle);wrap.append(row);}}
  $('contactForm').addEventListener('submit',e=>{e.preventDefault();work('saveContact','contactStatus',async()=>{const path='/api/portal/contacts'+(editingContact?'/'+editingContact.id:'');await auth.mutate('contact',path,editingContact?'PUT':'POST',{label:$('contactLabel').value,email:$('contactEmail').value,active:editingContact?!!editingContact.active:true});editingContact=null;$('contactForm').reset();$('saveContact').textContent='Add contact';const contacts=await auth.api('/api/portal/contacts');queue.contacts=contacts;const keep=selectedContacts('defaultRecipients');recipientPicker('defaultRecipients',contacts,keep);renderContacts();say('contactStatus','Contact saved. Select default recipients and save the site settings.');});});
