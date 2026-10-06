@@ -12,7 +12,7 @@
 <link href="/ribbon.svg" rel="icon" type="image/svg+xml"/>
 <link href="/community.css" rel="stylesheet"/><link href="/console.css" rel="stylesheet"/><meta content="noindex,nofollow" name="robots"/><script defer="" src="/console.js"></script></head>
 <body class="team-console">
-<aside class="console-sidebar"><a class="console-brand" href="/console"><img alt="PEAC green ribbon" src="/ribbon.svg"/><div><strong>PEAC</strong><small>The kindness workspace</small></div></a><div class="sidebar-section-label">WORKSPACE</div><nav aria-label="Console navigation" class="console-nav"><a class="active" data-nav="home" href="#home"><span class="nav-icon">⌂</span>Home</a><a data-nav="overview" href="#overview"><span class="nav-icon">▦</span>Overview</a><a data-nav="reports" href="#reports"><span class="nav-icon">∿</span>Reports &amp; records</a><a data-nav="people" href="#people"><span class="nav-icon">＋</span>Compliments</a><a data-nav="lunch" href="#lunch"><span class="nav-icon">♧</span>Lunch Buddies<span class="nav-count" id="navLunchCount">0</span></a><a class="admin-only" data-nav="website" href="#website"><span class="nav-icon">▤</span>Public website</a><a data-nav="assistant" href="#assistant"><span class="nav-icon">✧</span>PEAC Assistant</a><a data-nav="feedback" href="#feedback"><span class="nav-icon">◇</span>Feedback</a><a data-nav="soon" href="#soon"><span class="nav-icon">◷</span>Coming soon</a><a data-nav="settings" href="#settings"><span class="nav-icon">⚙</span>Settings<span class="nav-count" id="navSignupCount">0</span></a></nav><div class="sidebar-bottom"><div class="sidebar-motto"><img alt="PEAC green ribbon" src="/ribbon.svg"/><p>Kindness, thoughtfully<br/>put into practice.</p></div><a class="public-link" href="/" rel="noopener" target="_blank">View public site ↗</a><div class="sidebar-user"><span class="user-avatar" id="userInitial">P</span><div><strong id="signedInName">PEAC team</strong><small id="signedInRole">Private workspace</small></div><button aria-label="Sign out" id="logoutButton" title="Sign out" type="button">↪</button></div></div></aside><a class="skip-link" href="#dashboardView">Skip to dashboard</a>
+<aside class="console-sidebar"><a class="console-brand" href="/console"><img alt="PEAC green ribbon" src="/ribbon.svg"/><div><strong>PEAC</strong><small>The kindness workspace</small></div></a><div class="sidebar-section-label">WORKSPACE</div><nav aria-label="Console navigation" class="console-nav"><a class="active" data-nav="home" href="#home"><span class="nav-icon">⌂</span>Home</a><a data-nav="overview" href="#overview"><span class="nav-icon">▦</span>Overview</a><a data-nav="reports" href="#reports"><span class="nav-icon">∿</span>Reports &amp; records</a><a data-nav="people" href="#people"><span class="nav-icon">＋</span>Compliments</a><a data-nav="lunch" href="#lunch"><span class="nav-icon">♧</span>Lunch Buddies<span class="nav-count" id="navLunchCount">0</span></a><a data-nav="contacts" href="#contacts"><span class="nav-icon">◎</span>Contacts</a><a class="admin-only" data-nav="website" href="#website"><span class="nav-icon">▤</span>Public website</a><a data-nav="assistant" href="#assistant"><span class="nav-icon">✧</span>PEAC Assistant</a><a data-nav="feedback" href="#feedback"><span class="nav-icon">◇</span>Feedback</a><a data-nav="soon" href="#soon"><span class="nav-icon">◷</span>Coming soon</a><a data-nav="settings" href="#settings"><span class="nav-icon">⚙</span>Settings<span class="nav-count" id="navSignupCount">0</span></a></nav><div class="sidebar-bottom"><div class="sidebar-motto"><img alt="PEAC green ribbon" src="/ribbon.svg"/><p>Kindness, thoughtfully<br/>put into practice.</p></div><a class="public-link" href="/" rel="noopener" target="_blank">View public site ↗</a><div class="sidebar-user"><span class="user-avatar" id="userInitial">P</span><div><strong id="signedInName">PEAC team</strong><small id="signedInRole">Private workspace</small></div><button aria-label="Sign out" id="logoutButton" title="Sign out" type="button">↪</button></div></div></aside><a class="skip-link" href="#dashboardView">Skip to dashboard</a>
 <div class="page-shell">
 <header class="topbar">
 <div class="brand-wrap"><div><p class="eyebrow">Your community, connected</p><h1 id="consoleTitle">The kindness overview.</h1></div></div>
@@ -221,6 +221,31 @@
     <button class="btn primary" id="saveManualLunch" type="submit">Add to Lunch Buddies data</button><p id="manualLunchStatus" class="inline-status" role="status"></p>
   </form>
   <details class="module-spacer"><summary>Recent manual Lunch Buddies entries</summary><div id="manualLunchList" class="contact-list"></div></details>
+</section>
+</section>
+<section class="portal-panel hidden" data-portal-panel="contacts" id="contactsPanel" tabindex="-1">
+<div class="module-heading"><div><p class="eyebrow">Contacts</p><h2>Your contact book.</h2><p>Your personal contacts are private to your account. PEACADMIN can choose to publish official PEAC contacts on the public site.</p></div></div>
+<div class="portal-grid contact-book-grid">
+  <section class="panel">
+    <div class="panel-header"><div><p class="eyebrow small">Add or edit</p><h3>Contact details</h3></div><span class="status-dot">Private by default</span></div>
+    <form id="peacContactForm" class="form-stack module-spacer">
+      <label>Name<input id="peacContactName" maxlength="80" required placeholder="Name or role"></label>
+      <div class="form-grid"><label>Email<input id="peacContactEmail" maxlength="254" type="email" placeholder="Optional if phone is entered"></label><label>Phone<input id="peacContactPhone" maxlength="40" placeholder="Optional if email is entered"></label></div>
+      <label>Note<textarea id="peacContactNote" maxlength="300" rows="3" placeholder="Optional note, role, or reminder"></textarea></label>
+      <label class="checkbox-label admin-only"><input id="peacContactPublic" type="checkbox"><span>Show this contact on the public PEAC Contacts page.</span></label>
+      <div class="actions"><button id="savePeacContact" class="btn primary" type="submit">Save contact</button><button id="cancelPeacContactEdit" class="btn light hidden" type="button">Cancel edit</button></div>
+      <p id="peacContactStatus" class="inline-status" role="status"></p>
+    </form>
+  </section>
+  <section class="panel">
+    <div class="panel-header"><div><p class="eyebrow small">Only you can see these</p><h3>My contacts</h3></div><button id="reloadPeacContacts" class="text-btn" type="button">Refresh</button></div>
+    <div id="myPeacContacts" class="contact-list module-spacer"></div>
+  </section>
+</div>
+<section class="panel module-spacer">
+  <div class="panel-header"><div><p class="eyebrow small">Public directory</p><h3>Published PEAC contacts</h3></div><a class="text-btn" href="/#contacts" target="_blank" rel="noopener">View public page ↗</a></div>
+  <p class="muted">These are the only contacts exposed on the public website.</p>
+  <div id="publishedPeacContacts" class="contact-list module-spacer"></div>
 </section>
 </section>
 <section class="portal-panel hidden" data-portal-panel="website" id="websitePanel" tabindex="-1">
