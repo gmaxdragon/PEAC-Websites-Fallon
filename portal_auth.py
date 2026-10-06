@@ -137,10 +137,17 @@ class Auth:
             existing = db.execute("SELECT id FROM portal_signup_requests WHERE status='pending' AND (username=? OR lower(email)=lower(?))", (username, email)).fetchone()
             if existing:
                 raise APIError("A sign-up request for that username or email is already waiting for approval.", 409)
+            stamp=now_iso()
             db.execute("INSERT INTO portal_signup_requests(id,username,display_name,email,password_hash,status,created_at) VALUES(?,?,?,?,?,'pending',?)",
-                       (sid, username, display, email, encoded, now_iso()))
+                       (sid, username, display, email, encoded, stamp))
+            if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='portal_notifications'").fetchone():
+                for admin in db.execute("SELECT id FROM portal_users WHERE active=1 AND role='admin'"):
+                    db.execute("""INSERT INTO portal_notifications
+                        (id,user_id,kind,title,body,href,created_at,read_at) VALUES(?,?,?,?,?,?,?,'')""",
+                        (secrets.token_hex(16),admin["id"],"signup_request","New PEAC account request",
+                         f"{display} requested a PEAC account. Review it in Settings.","/console#settings",stamp))
             self.audit(db, "public-signup", "signup.requested", sid)
-        return {"ok": True, "status": "pending", "message": "Sign-up request sent. A PEAC administrator must approve it before you can sign in."}
+        return {"ok": True, "status": "pending", "request_id": sid, "message": "Request received. PEACADMIN must approve it before you can sign in."}
 
     def signup_requests(self):
         with self.store.connection() as db:
