@@ -75,6 +75,7 @@ class PortalRouter:
         if verb=="GET" and path in PUBLIC_FILES:
             return self.asset(PUBLIC_FILES[path])
         if verb=="GET" and path=="/api/public/config": return self.json_response(self.service.public_content())
+        if verb=="GET" and path=="/api/public/contacts": return self.json_response(self.service.public_peac_contacts())
         payload=None
         if verb in {"POST","PUT","DELETE"}:
             if len(body)>(3_000_000 if path.startswith("/api/import/") else 65536): raise APIError("Request too large.",413)
