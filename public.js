@@ -17,17 +17,28 @@
       if(!pending)pending={key:newKey(),fingerprint};
       try{sessionStorage.setItem('peac.lunch.pending',JSON.stringify(pending));}catch(_){}
       status('Saving your request...');
-      const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);let r,data;
-      try{r=await fetch('/api/public/lunch',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1','Idempotency-Key':pending.key},body:JSON.stringify(payload),credentials:'same-origin',signal:controller.signal});data=await r.json();}
-      finally{clearTimeout(timer);}
-      if(!r.ok){
-        if(r.status>=400&&r.status<500&&r.status!==409){pending=null;try{sessionStorage.removeItem('peac.lunch.pending');}catch(_){}}
-        throw new Error(data.error||'Unable to save. Please keep these details and retry.');
+      let r,data,lastError=null;
+      for(let attempt=1;attempt<=3;attempt++){
+        const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),18000);
+        try{
+          r=await fetch('/api/public/lunch',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1','Idempotency-Key':pending.key},body:JSON.stringify(payload),credentials:'same-origin',signal:controller.signal});
+          const raw=await r.text();try{data=raw?JSON.parse(raw):{};}catch(_){data={};}
+          if(r.ok)break;
+          if(r.status>=400&&r.status<500&&r.status!==409)break;
+          lastError=new Error(data.error||`Temporary server problem (HTTP ${r.status}).`);
+        }catch(err){lastError=err;}
+        finally{clearTimeout(timer);}
+        if(attempt<3){status(`The server is reconnecting. Retrying safely (${attempt}/2)...`);await new Promise(resolve=>setTimeout(resolve,900*attempt));}
+      }
+      if(!r?.ok){
+        if(r&&r.status>=400&&r.status<500&&r.status!==409){pending=null;try{sessionStorage.removeItem('peac.lunch.pending');}catch(_){}}
+        if(lastError?.name==='AbortError')throw lastError;
+        throw new Error(data?.error||lastError?.message||'Unable to save your request. Your details were not confirmed as saved.');
       }
       pending=null;try{sessionStorage.removeItem('peac.lunch.pending');}catch(_){}
       form.reset();form.classList.add('hidden');$('lunchReference').textContent=data.reference;$('successMessage').textContent=data.message;
       $('lunchSuccess').classList.remove('hidden');$('lunchSuccess').focus();
-    }catch(error){status(error.name==='AbortError'?'The response timed out. Keep the same details and press Send again to check the original request without creating a duplicate.':error.message,true);}
+    }catch(error){status(error.name==='AbortError'?'PEAC could not confirm the server response. Your request key is saved safely. Press Send again with the same details and PEAC will check the original request without creating a duplicate.':error.message,true);}
     finally{busy=false;$('submitLunchBtn').disabled=false;}
   });
   fetch('/api/public/config',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('Unavailable');return r.json();}).then(c=>{
