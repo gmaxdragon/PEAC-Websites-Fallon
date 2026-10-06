@@ -104,3 +104,8 @@ body{background:
 @keyframes peacPulse{0%,100%{transform:scale(.98);opacity:.35}50%{transform:scale(1.04);opacity:.75}}
 html[data-motion=off] .stable-ribbon-scene .ribbon-orbit:after{animation:none!important}
 @media(prefers-reduced-motion:reduce){.stable-ribbon-scene .ribbon-orbit:after{animation:none!important}}
+
+/* v7.7 Lunch Buddies required period controls */
+.lunch-period-choice{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lunch-period-choice .choice span{min-height:58px;font-size:.82rem;font-weight:700}
+@media(max-width:640px){.lunch-period-choice{grid-template-columns:1fr 1fr}.lunch-period-choice .choice span{min-height:50px}}
