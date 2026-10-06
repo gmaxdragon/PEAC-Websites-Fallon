@@ -98,6 +98,22 @@ jobs:
           private={**base,"Cookie":cookie}
           private_write={**write,"Cookie":cookie,"X-CSRF-Token":login["csrf"]}
 
+          status_private_contact,private_contact,_=call("POST","/api/portal/contact-book",
+              {**private_write,"Idempotency-Key":"ci-private-contact-1234567890"},
+              {"name":"Private Friend","email":"friend@example.com","phone":"","note":"private","visibility":"private"})
+          assert status_private_contact==201 and private_contact["visibility"]=="private", private_contact
+
+          status_public_contact,public_contact,_=call("POST","/api/portal/contact-book",
+              {**private_write,"Idempotency-Key":"ci-public-contact-1234567890"},
+              {"name":"PEAC Contact","email":"peac@example.com","phone":"","note":"official","visibility":"public"})
+          assert status_public_contact==201 and public_contact["visibility"]=="public", public_contact
+
+          status_public_list,public_list,_=call("GET","/api/public/contacts",base)
+          assert status_public_list==200 and len(public_list)==1 and public_list[0]["name"]=="PEAC Contact", public_list
+
+          status_book,contact_book,_=call("GET","/api/portal/contact-book",private)
+          assert status_book==200 and len(contact_book["mine"])==2 and len(contact_book["public"])==1, contact_book
+
           status,queue,_=call("GET","/api/portal/lunch",private)
           status2,notifications,_=call("GET","/api/portal/notifications",private)
           status3,assistant,_=call("POST","/api/portal/assistant/ask",private_write,
