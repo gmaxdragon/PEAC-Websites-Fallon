@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from peac_core import APIError, Service, object_payload, text, now_iso, local_today
 from portal_auth import Auth, require_admin
 
-STATES = {"new", "contacted", "scheduled", "completed", "cancelled"}
+STATES = {"new", "approved", "contacted", "scheduled", "completed", "cancelled"}
 SUPPORTS = {"company", "new_people", "finding_group", "custom"}
 
 DAILY_QUOTES = [
@@ -397,7 +397,7 @@ class CommunityService(Service):
         days=p.get("days",90)
         if type(days) is not int or not 30<=days<=3650: raise APIError("Retention days must be between 30 and 3650.")
         cutoff=(self.today_fn()-timedelta(days=days)).isoformat()
-        where="status IN ('completed','cancelled') AND substr(updated_at,1,10) < ?"
+        where="status IN ('approved','completed','cancelled') AND substr(updated_at,1,10) < ?"
         if p.get("confirm")!="PURGE CLOSED REQUESTS":
             with self.store.connection() as db: n=db.execute("SELECT COUNT(*) FROM lunch_requests WHERE "+where,(cutoff,)).fetchone()[0]
             return {"eligible":n,"before":cutoff,"deleted":False}
