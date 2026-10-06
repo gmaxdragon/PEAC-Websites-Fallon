@@ -51,8 +51,8 @@ DAILY_QUOTES = [
 
 DEFAULT_CONTENT = {
     "school_label": "Our school community", "about": "",
-    "lunch_intro": "A friendly face. A place at the table. Ask the PEAC team about joining Lunch Buddies.",
-    "privacy_notice": "Only authorized PEAC coordinators can see your request. Share only what is needed to arrange lunch. This form is not monitored for emergencies; speak to a trusted adult for urgent help.",
+    "lunch_intro": "A friendly face. A place at the table. Send a request and the Lunch Buddies group will review it.",
+    "privacy_notice": "Only the private Lunch Buddies group can see your request. Share only what is needed to arrange lunch. This form is not monitored for emergencies; speak to a trusted adult for urgent help.",
     "lunch_enabled": False, "default_contact_ids": [],
 }
 
@@ -127,6 +127,15 @@ class CommunityService(Service):
                 CREATE INDEX IF NOT EXISTS portal_notifications_user ON portal_notifications(user_id, read_at, created_at);
             """)
             db.execute("INSERT OR IGNORE INTO portal_content VALUES(1,?)", (json.dumps(DEFAULT_CONTENT),))
+            row=db.execute("SELECT payload FROM portal_content WHERE id=1").fetchone()
+            if row:
+                payload=json.loads(row[0])
+                changed=False
+                if payload.get("lunch_intro")=="A friendly face. A place at the table. Ask the PEAC team about joining Lunch Buddies.":
+                    payload["lunch_intro"]=DEFAULT_CONTENT["lunch_intro"];changed=True
+                if payload.get("privacy_notice")=="Only authorized PEAC coordinators can see your request. Share only what is needed to arrange lunch. This form is not monitored for emergencies; speak to a trusted adult for urgent help.":
+                    payload["privacy_notice"]=DEFAULT_CONTENT["privacy_notice"];changed=True
+                if changed: db.execute("UPDATE portal_content SET payload=? WHERE id=1",(json.dumps(payload),))
             db.commit()
 
     def content(self):
