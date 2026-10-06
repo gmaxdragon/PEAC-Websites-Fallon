@@ -50,6 +50,19 @@
     $('lunchFields').disabled=!c.lunch_enabled;$('formAvailability').textContent=c.lunch_enabled?'Requests are open. Your details go to the private PEAC queue.':'Requests are paused while the PEAC team finishes setup. Please check with your coordinator.';
     if(pending)status('A previous request has an unconfirmed response. Re-enter its exact details to reconcile it, or ask a coordinator to check it first.',true);
   }).catch(()=>{$('formAvailability').textContent='This preview is not connected. Open the page through the PEAC server; no request has been sent.';});
+  fetch('/api/public/contacts',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('Unable to load contacts.');return r.json();}).then(rows=>{
+    const wrap=$('publicContactsList');wrap.replaceChildren();
+    if(!rows.length){const card=document.createElement('article');card.className='public-panel';card.innerHTML='<h3>Contacts are being updated.</h3><p class="muted">PEACADMIN has not published any contacts yet.</p>';wrap.append(card);return;}
+    for(const contact of rows){
+      const card=document.createElement('article');card.className='public-panel public-contact-card';
+      const h=document.createElement('h3');h.textContent=contact.name;card.append(h);
+      if(contact.note){const p=document.createElement('p');p.className='muted';p.textContent=contact.note;card.append(p);}
+      const links=document.createElement('div');links.className='public-contact-links';
+      if(contact.email){const a=document.createElement('a');a.href='mailto:'+contact.email;a.textContent=contact.email;links.append(a);}
+      if(contact.phone){const a=document.createElement('a');a.href='tel:'+contact.phone.replace(/[^0-9+]/g,'');a.textContent=contact.phone;links.append(a);}
+      card.append(links);wrap.append(card);
+    }
+  }).catch(()=>{const wrap=$('publicContactsList');if(wrap)wrap.innerHTML='<article class="public-panel"><p class="muted">Contacts could not be loaded right now.</p></article>';});
   $('publicFeedbackBtn')?.addEventListener('click',async()=>{
     const message=$('publicFeedbackText').value.trim();if(!message){$('publicFeedbackStatus').textContent='Write feedback first.';return;}
     $('publicFeedbackBtn').disabled=true;$('publicFeedbackStatus').textContent='Saving feedback...';
