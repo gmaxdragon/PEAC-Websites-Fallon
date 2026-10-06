@@ -112,6 +112,19 @@ jobs:
           assert status4==200 and approved_request["version"]==request["version"]+1, approved_request
           status5,queue_after,_=call("GET","/api/portal/lunch",private)
           assert status5==200 and queue_after["requests"][0]["status"]=="approved", queue_after
+
+          status6,manual_entry,_=call("POST","/api/portal/lunch/manual",
+              {**private_write,"Idempotency-Key":"ci-manual-lunch-1234567890"},
+              {"date":date.today().isoformat(),"grade":"7","lunch_period":"Lunch B","count":2,"note":"Offline lunch buddies"})
+          assert status6==201 and manual_entry["count"]==2, manual_entry
+
+          status7,dashboard,_=call("GET","/api/dashboard",private)
+          assert status7==200, dashboard
+          assert dashboard["lunch_buddies"]["approved_requests"]==1, dashboard["lunch_buddies"]
+          assert dashboard["lunch_buddies"]["manual_total"]==2, dashboard["lunch_buddies"]
+          assert dashboard["lunch_buddies"]["all_time_total"]==3, dashboard["lunch_buddies"]
+          assert sum(r.get("lunch_buddies",0) for r in dashboard["analytics_entries"])==3
+
           assert notifications["unread"]>=1, notifications
           assert assistant["context_used"] is True, assistant
           assert isinstance(assistant.get("suggestions"),list) and assistant["suggestions"], assistant
