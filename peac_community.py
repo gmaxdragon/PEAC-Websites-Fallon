@@ -97,6 +97,12 @@ class CommunityService(Service):
                     key_hash TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, reference TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS lunch_manual_entries (
+                    id TEXT PRIMARY KEY, date TEXT NOT NULL, grade TEXT NOT NULL,
+                    lunch_period TEXT NOT NULL, count INTEGER NOT NULL,
+                    note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, created_by TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS lunch_manual_date ON lunch_manual_entries(date, grade);
                 CREATE TABLE IF NOT EXISTS assistant_knowledge (
                     id TEXT PRIMARY KEY, question TEXT NOT NULL, answer TEXT NOT NULL,
                     approved INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -165,6 +171,82 @@ class CommunityService(Service):
             "compliments": "coming_soon", "today": self.today_fn().isoformat(), "quote": self.quote_of_day(),
             "notice": "Hosted PEAC site." if os.getenv("PEAC_DEPLOY_MODE","").lower()=="hosted" else "Local preview. Public hosting is not configured.",
         }
+
+    def dashboard(self):
+        data=super().dashboard()
+        with self.store.connection() as db:
+            approved=[dict(r) for r in db.execute(
+                "SELECT id,preferred_date AS date,grade,lunch_period FROM lunch_requests WHERE status='approved' ORDER BY preferred_date,id"
+            )]
+            manual=[dict(r) for r in db.execute(
+                "SELECT id,date,grade,lunch_period,count,note,created_at,created_by FROM lunch_manual_entries ORDER BY date,id"
+            )]
+        analytics=[]
+        for row in data["entries"]:
+            analytics.append({
+                "date":row["date"],"grade":row["grade"],"count":row["count"],
+                "trash_count":row["trash_count"],"lunch_buddies":0,"source":"compliments"
+            })
+        for row in approved:
+            analytics.append({
+                "date":row["date"],"grade":row["grade"],"count":0,"trash_count":0,
+                "lunch_buddies":1,"source":"approved_lunch_request"
+            })
+        for row in manual:
+            analytics.append({
+                "date":row["date"],"grade":row["grade"],"count":0,"trash_count":0,
+                "lunch_buddies":row["count"],"source":"manual_lunch"
+            })
+        analytics.sort(key=lambda r:(r["date"],r["source"],r["grade"]))
+        manual_total=sum(r["count"] for r in manual)
+        data["analytics_entries"]=analytics
+        data["lunch_buddies"]={
+            "approved_requests":len(approved),
+            "manual_total":manual_total,
+            "all_time_total":len(approved)+manual_total,
+            "manual_entries":manual,
+        }
+        return data
+
+    def save_manual_lunch(self,payload,key,user):
+        require_admin(user)
+        p=object_payload(payload)
+        if set(p)-{"date","grade","lunch_period","count","note"}: raise APIError("Unknown manual Lunch Buddies field.")
+        day=p.get("date","")
+        if not isinstance(day,str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}",day): raise APIError("Choose a valid date.")
+        try: parsed=date.fromisoformat(day)
+        except ValueError: raise APIError("Choose a valid date.")
+        if parsed>self.today_fn(): raise APIError("Manual Lunch Buddies entries cannot be in the future.")
+        grade=p.get("grade","unassigned")
+        if not isinstance(grade,str) or grade not in {"6","7","8","unassigned"}: raise APIError("Choose a listed grade or Unassigned.")
+        period=p.get("lunch_period")
+        if period not in {"Lunch A","Lunch B"}: raise APIError("Choose Lunch A or Lunch B.")
+        count=p.get("count")
+        if type(count) is not int or not 1<=count<=1000: raise APIError("Lunch Buddies count must be a whole number from 1 to 1,000.")
+        note=text(p.get("note",""),"manual Lunch Buddies note",500)
+        identity=str(uuid.uuid4());stamp=now_iso()
+        cleaned={"date":day,"grade":grade,"lunch_period":period,"count":count,"note":note}
+        def add(db):
+            db.execute("""INSERT INTO lunch_manual_entries
+                (id,date,grade,lunch_period,count,note,created_at,created_by) VALUES(?,?,?,?,?,?,?,?)""",
+                (identity,day,grade,period,count,note,stamp,user["id"]))
+            db.execute("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'")
+            self.auth.audit(db,user["id"],"lunch.manual_added",identity)
+            return {"id":identity,**cleaned}
+        return self.store.mutate(key,"lunch-manual",cleaned,add)
+
+    def delete_manual_lunch(self,entry_id,payload,key,user):
+        require_admin(user)
+        p=object_payload(payload)
+        if p.get("confirm")!="DELETE MANUAL LUNCH": raise APIError("Confirm manual Lunch Buddies deletion.")
+        def remove(db):
+            row=db.execute("SELECT id FROM lunch_manual_entries WHERE id=?",(entry_id,)).fetchone()
+            if not row: raise APIError("Manual Lunch Buddies entry not found.",404)
+            db.execute("DELETE FROM lunch_manual_entries WHERE id=?",(entry_id,))
+            db.execute("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'")
+            self.auth.audit(db,user["id"],"lunch.manual_deleted",entry_id)
+            return {"deleted":True,"id":entry_id}
+        return self.store.mutate(key,"lunch-manual-delete:"+entry_id,p,remove)
 
     def save_feedback(self, payload, source, user_id="public"):
         p=object_payload(payload)
@@ -372,7 +454,9 @@ class CommunityService(Service):
         counts={s:0 for s in STATES}
         with self.store.connection() as db:
             for row in db.execute("SELECT status,COUNT(*) n FROM lunch_requests GROUP BY status"): counts[row["status"]]=row["n"]
-        return {"requests":requests,"outbox":outbox,"counts":counts,"total":total,"truncated":total>len(requests) or outbox_total>len(outbox),"outbox_total":outbox_total,"contacts":self.contacts()}
+        with self.store.connection() as db:
+            manual_entries=[dict(r) for r in db.execute("SELECT id,date,grade,lunch_period,count,note,created_at FROM lunch_manual_entries ORDER BY date DESC,created_at DESC LIMIT 500")]
+        return {"requests":requests,"outbox":outbox,"counts":counts,"total":total,"truncated":total>len(requests) or outbox_total>len(outbox),"outbox_total":outbox_total,"contacts":self.contacts(),"manual_entries":manual_entries}
 
     def update_lunch(self,rid,payload,key,user):
         p=object_payload(payload)
@@ -451,6 +535,9 @@ class CommunityService(Service):
             from peac_people import delete_person
             return delete_person(self,match[1],payload,key,user),200
         if path=="/api/portal/lunch" and method=="GET": return self.lunch_queue(),200
+        if path=="/api/portal/lunch/manual" and method=="POST": return self.save_manual_lunch(payload,key,user),201
+        manual_match=re.fullmatch(r"/api/portal/lunch/manual/([a-f0-9-]{36})",path)
+        if manual_match and method=="DELETE": return self.delete_manual_lunch(manual_match[1],payload,key,user),200
         match=re.fullmatch(r"/api/portal/lunch/([a-f0-9-]{36})(/route)?",path)
         if match:
             if match[2] and method=="POST": return self.route_lunch(match[1],payload,key,user),200
