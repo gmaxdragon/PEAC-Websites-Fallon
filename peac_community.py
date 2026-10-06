@@ -121,6 +121,14 @@ class CommunityService(Service):
                     person_name TEXT NOT NULL, created_at TEXT NOT NULL, created_by TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS compliment_people_name ON compliment_people(person_name);\n                CREATE TABLE IF NOT EXISTS site_feedback (id TEXT PRIMARY KEY, source TEXT NOT NULL, message TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS peac_contacts (
+                    id TEXT PRIMARY KEY, owner_user_id TEXT NOT NULL,
+                    visibility TEXT NOT NULL CHECK(visibility IN ('private','public')),
+                    name TEXT NOT NULL, email TEXT NOT NULL DEFAULT '',
+                    phone TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS peac_contacts_owner ON peac_contacts(owner_user_id, visibility, name);
                 CREATE TABLE IF NOT EXISTS lunch_buddy_preferences (
                     request_id TEXT PRIMARY KEY REFERENCES lunch_requests(id) ON DELETE CASCADE,
                     requested_name TEXT NOT NULL, matched_user_id TEXT NOT NULL DEFAULT ''
@@ -293,6 +301,69 @@ class CommunityService(Service):
     def contacts(self):
         with self.store.connection() as db:
             return [dict(r) for r in db.execute("SELECT * FROM lunch_contacts ORDER BY label,email")]
+
+    def public_peac_contacts(self):
+        with self.store.connection() as db:
+            return [dict(r) for r in db.execute(
+                "SELECT id,name,email,phone,note FROM peac_contacts WHERE visibility='public' ORDER BY name,email"
+            )]
+
+    def contact_book(self,user):
+        with self.store.connection() as db:
+            mine=[dict(r) for r in db.execute(
+                "SELECT id,visibility,name,email,phone,note,created_at,updated_at FROM peac_contacts WHERE owner_user_id=? ORDER BY name,email",
+                (user["id"],))]
+            public=[dict(r) for r in db.execute(
+                "SELECT id,name,email,phone,note FROM peac_contacts WHERE visibility='public' ORDER BY name,email"
+            )]
+        return {"mine":mine,"public":public}
+
+    def save_peac_contact(self,payload,key,user,cid=None):
+        p=object_payload(payload)
+        if set(p)-{"name","email","phone","note","visibility"}: raise APIError("Unknown contact field.")
+        name=text(p.get("name",""),"contact name",80,True)
+        raw_email=str(p.get("email","") or "").strip()
+        email=email_address(raw_email) if raw_email else ""
+        phone=text(p.get("phone",""),"phone",40)
+        if phone and not re.fullmatch(r"[0-9()+ .-]{3,40}",phone): raise APIError("Enter a valid phone number.")
+        note=text(p.get("note",""),"contact note",300)
+        visibility=p.get("visibility","private")
+        if visibility not in {"private","public"}: raise APIError("Choose private or public.")
+        if visibility=="public" and user.get("role")!="admin": raise APIError("Only PEACADMIN can publish a contact.",403)
+        if not email and not phone: raise APIError("Add an email address or phone number.")
+        identity=cid or str(uuid.uuid4());stamp=now_iso()
+        cleaned={"name":name,"email":email,"phone":phone,"note":note,"visibility":visibility}
+        def save(db):
+            if cid:
+                row=db.execute("SELECT owner_user_id,visibility FROM peac_contacts WHERE id=?",(cid,)).fetchone()
+                if not row: raise APIError("Contact not found.",404)
+                if row["owner_user_id"]!=user["id"] and user.get("role")!="admin": raise APIError("You can only edit your own contacts.",403)
+                if row["visibility"]=="public" and user.get("role")!="admin": raise APIError("Only PEACADMIN can edit a public contact.",403)
+                db.execute("""UPDATE peac_contacts SET owner_user_id=?,visibility=?,name=?,email=?,phone=?,note=?,updated_at=? WHERE id=?""",
+                           (user["id"],visibility,name,email,phone,note,stamp,cid))
+                action="contact.updated"
+            else:
+                db.execute("""INSERT INTO peac_contacts
+                    (id,owner_user_id,visibility,name,email,phone,note,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?)""",
+                    (identity,user["id"],visibility,name,email,phone,note,stamp,stamp))
+                action="contact.created"
+            self.auth.audit(db,user["id"],action,identity)
+            return {"id":identity,**cleaned}
+        return self.store.mutate(key,"peac-contact:"+identity,cleaned,save)
+
+    def delete_peac_contact(self,cid,payload,key,user):
+        p=object_payload(payload)
+        if p.get("confirm")!="DELETE CONTACT": raise APIError("Confirm contact deletion.")
+        def remove(db):
+            row=db.execute("SELECT owner_user_id,visibility FROM peac_contacts WHERE id=?",(cid,)).fetchone()
+            if not row: raise APIError("Contact not found.",404)
+            if row["owner_user_id"]!=user["id"] and user.get("role")!="admin": raise APIError("You can only delete your own contacts.",403)
+            if row["visibility"]=="public" and user.get("role")!="admin": raise APIError("Only PEACADMIN can delete a public contact.",403)
+            db.execute("DELETE FROM peac_contacts WHERE id=?",(cid,))
+            self.auth.audit(db,user["id"],"contact.deleted",cid)
+            return {"deleted":True,"id":cid}
+        return self.store.mutate(key,"peac-contact-delete:"+cid,p,remove)
 
     def save_content(self, payload, key, user):
         require_admin(user)
@@ -521,6 +592,13 @@ class CommunityService(Service):
         if path=="/api/portal/contacts":
             if method=="GET": return self.contacts(),200
             if method=="POST": return self.save_contact(payload,key,user),201
+        if path=="/api/portal/contact-book":
+            if method=="GET": return self.contact_book(user),200
+            if method=="POST": return self.save_peac_contact(payload,key,user),201
+        contact_match=re.fullmatch(r"/api/portal/contact-book/([a-f0-9-]{36})",path)
+        if contact_match:
+            if method=="PUT": return self.save_peac_contact(payload,key,user,contact_match[1]),200
+            if method=="DELETE": return self.delete_peac_contact(contact_match[1],payload,key,user),200
         match=re.fullmatch(r"/api/portal/contacts/([a-f0-9-]{36})",path)
         if match and method=="PUT": return self.save_contact(payload,key,user,match[1]),200
         if path=="/api/portal/compliment-people":
