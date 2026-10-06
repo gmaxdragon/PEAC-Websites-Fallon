@@ -13,7 +13,7 @@ from peac_core import APIError, Service, object_payload, text, now_iso, local_to
 from portal_auth import Auth, require_admin
 
 STATES = {"new", "contacted", "scheduled", "completed", "cancelled"}
-SUPPORTS = {"company", "new_people", "finding_group"}
+SUPPORTS = {"company", "new_people", "finding_group", "custom"}
 
 DAILY_QUOTES = [
     "Kindness gets stronger when someone decides to start.",
@@ -273,11 +273,14 @@ class CommunityService(Service):
         try: parsed=date.fromisoformat(day)
         except ValueError: raise APIError("Choose a valid lunch date.")
         if not self.today_fn()<=parsed<=self.today_fn()+timedelta(days=90): raise APIError("Choose today or a date in the next 90 days.")
-        if not isinstance(p.get("support"),str) or p.get("support") not in SUPPORTS: raise APIError("Choose one of the listed Lunch Buddies options.")
+        lunch_period=p.get("lunch_period")
+        if not isinstance(lunch_period,str) or lunch_period not in {"Lunch A","Lunch B"}:
+            raise APIError("Choose Lunch A or Lunch B.")
+        if not isinstance(p.get("support"),str) or p.get("support") not in SUPPORTS: raise APIError("Choose a valid Lunch Buddies option.")
         return {"preferred_name":text(p.get("preferred_name",""),"preferred name",60,True),
                 "email":email_address(p.get("email","")),"grade":grade,"preferred_date":day,
-                "lunch_period":text(p.get("lunch_period",""),"lunch period",60),
-                "support":p["support"],"details":text(p.get("details",""),"details",500),
+                "lunch_period":lunch_period,
+                "support":p["support"],"details":text(p.get("details",""),"what you would like to do",500,True),
                 "preferred_buddy":text(p.get("preferred_buddy",""),"preferred lunch buddy",80)}
 
     def submit_lunch(self, payload, key, peer):
