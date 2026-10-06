@@ -46,7 +46,8 @@
    $('navLunchCount').textContent=String(fresh.length);
    $('lunchNotificationCount').textContent=`${fresh.length} new`;
    say('lunchQueueStatus',queue.truncated?'Showing the newest requests.':'');
-   renderRequests();
+   renderRequests();renderManualLunch();
+   if($('manualLunchDate')&&!$('manualLunchDate').value)$('manualLunchDate').value=new Date().toISOString().slice(0,10);
    if(selected){
      const row=fresh.find(r=>r.id===selected.id);
      if(row)selectRequest(row);
@@ -73,6 +74,29 @@
    $('detailText').textContent=r.details||'No activity was entered.';
    say('requestSaveStatus','');
  }
+ function renderManualLunch(){
+   const wrap=$('manualLunchList');if(!wrap)return;wrap.replaceChildren();
+   const rows=queue?.manual_entries||[];
+   if(!rows.length){wrap.append(node('p','muted','No manual Lunch Buddies entries yet.'));return;}
+   for(const row of rows.slice(0,25)){
+     const item=node('div','contact-row'),info=node('div');
+     const grade=row.grade==='unassigned'?'Unassigned':`Grade ${row.grade}`;
+     info.append(node('strong','',`${row.date} · ${row.lunch_period} · ${row.count} Lunch Budd${row.count===1?'y':'ies'}`),node('small','',`${grade}${row.note?' · '+row.note:''}`));
+     item.append(info);
+     if(auth.state.user?.role==='admin'){
+       const remove=node('button','','Delete');remove.type='button';
+       remove.addEventListener('click',async()=>{if(!confirm('Delete this manual Lunch Buddies entry?'))return;try{await auth.mutate('manual-lunch-delete:'+row.id,'/api/portal/lunch/manual/'+row.id,'DELETE',{confirm:'DELETE MANUAL LUNCH'});await loadLunch();await window.PEACWorkspace?.refresh?.();say('manualLunchStatus','Manual entry deleted.');}catch(e){say('manualLunchStatus',e.message,true);}});
+       item.append(remove);
+     }
+     wrap.append(item);
+   }
+ }
+ $('manualLunchForm')?.addEventListener('submit',e=>{e.preventDefault();if(!e.currentTarget.reportValidity())return;work('saveManualLunch','manualLunchStatus',async()=>{
+   const payload={date:$('manualLunchDate').value,grade:$('manualLunchGrade').value,lunch_period:$('manualLunchPeriod').value,count:Number($('manualLunchCount').value),note:$('manualLunchNote').value.trim()};
+   await auth.mutate('manual-lunch','/api/portal/lunch/manual','POST',payload);
+   $('manualLunchCount').value='1';$('manualLunchNote').value='';
+   await loadLunch();await window.PEACWorkspace?.refresh?.();say('manualLunchStatus','Manual Lunch Buddies data saved and added to graphs.');
+ });});
  $('reloadLunch').addEventListener('click',()=>work('reloadLunch','lunchQueueStatus',loadLunch));
  $('approveRequest').addEventListener('click',()=>{if(!selected)return;work('approveRequest','requestSaveStatus',async()=>{
    const id=selected.id;
