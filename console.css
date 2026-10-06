@@ -180,3 +180,9 @@ body[data-username]:not([data-username="peacadmin"]) .home-notifications{display
 .manual-lunch-panel details>summary{cursor:pointer;font-size:.7rem;color:#617955;padding:7px 0}
 .manual-lunch-panel .contact-row{align-items:flex-start}
 @media(max-width:640px){.graph-series-controls{display:grid;grid-template-columns:1fr}.graph-series-controls label{border-radius:10px}.preview-measures{grid-template-columns:1fr 1fr}.manual-lunch-panel .form-grid{grid-template-columns:1fr}}
+
+/* v8.0 private contact book */
+.contact-book-grid .contact-list{display:flex;flex-direction:column;gap:8px}
+.contact-book-grid .contact-row,.portal-panel[data-portal-panel="contacts"]>.panel .contact-row{border:1px solid #dce8d5;background:#f8fbf5;border-radius:11px;padding:12px 13px}
+.contact-book-grid .contact-row small,.portal-panel[data-portal-panel="contacts"] .contact-row small{display:block;color:#829178;font-size:.61rem;margin-top:3px}
+.contact-book-grid .contact-row button,.portal-panel[data-portal-panel="contacts"] .contact-row button{border:1px solid #d6e2cf;background:#fff;border-radius:8px;padding:7px 9px;font-size:.61rem}
