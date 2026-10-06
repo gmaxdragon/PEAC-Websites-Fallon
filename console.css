@@ -145,3 +145,8 @@ body[data-username]:not([data-username="peacadmin"]) .home-notifications{display
 .simple-coming-grid .coming-member-card{min-height:170px}
 @media(max-width:860px){.peacadmin-summary-grid{grid-template-columns:1fr 1fr}.peacadmin-summary-grid .admin-focus-card:last-child{grid-column:1/-1}}
 @media(max-width:560px){.peacadmin-summary-grid,.simple-coming-grid{grid-template-columns:1fr}.peacadmin-summary-grid .admin-focus-card:last-child{grid-column:auto}}
+
+/* v7.7 account request visibility */
+.account-request-alert{margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:18px;background:linear-gradient(145deg,#f5f9ef,#edf6e7)!important}
+.account-request-alert h3{font-size:1.05rem;margin:4px 0 5px}.account-request-alert .muted{margin:0}.account-request-alert .btn{white-space:nowrap}
+@media(max-width:640px){.account-request-alert{align-items:flex-start;flex-direction:column}.account-request-alert .btn{width:100%}}
