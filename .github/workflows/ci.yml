@@ -107,7 +107,7 @@ jobs:
           assert len(queue["requests"])==1, queue
           request=queue["requests"][0]
           assert request["status"]=="new", request
-          status4,approved_request,_=call("PUT","/api/portal/lunch/"+request["id"],private_write,
+          status4,approved_request,_=call("PUT","/api/portal/lunch/"+request["id"],{**private_write,"Idempotency-Key":"ci-approve-request-1234567890"},
               {"status":"approved","staff_note":"","version":request["version"]})
           assert status4==200 and approved_request["version"]==request["version"]+1, approved_request
           status5,queue_after,_=call("GET","/api/portal/lunch",private)
