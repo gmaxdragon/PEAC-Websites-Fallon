@@ -186,3 +186,239 @@ body[data-username]:not([data-username="peacadmin"]) .home-notifications{display
 .contact-book-grid .contact-row,.portal-panel[data-portal-panel="contacts"]>.panel .contact-row{border:1px solid #dce8d5;background:#f8fbf5;border-radius:11px;padding:12px 13px}
 .contact-book-grid .contact-row small,.portal-panel[data-portal-panel="contacts"] .contact-row small{display:block;color:#829178;font-size:.61rem;margin-top:3px}
 .contact-book-grid .contact-row button,.portal-panel[data-portal-panel="contacts"] .contact-row button{border:1px solid #d6e2cf;background:#fff;border-radius:8px;padding:7px 9px;font-size:.61rem}
+
+/* October 2026 refresh. Keep data controls and role visibility unchanged. */
+body.team-console {
+  --console-ink: #173d32;
+  --console-muted: #5d7166;
+  --console-line: #d8e4da;
+  --console-mint: #d8f2d9;
+  background: #f7f8f2;
+  color: var(--console-ink);
+  -webkit-font-smoothing: antialiased;
+}
+.team-console .page-shell {
+  margin-left: 238px;
+  padding: 30px 34px 26px;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 98% 0%, #e4f0e4 0, transparent 36%);
+}
+.console-sidebar {
+  width: 238px;
+  padding: 28px 16px 18px;
+  color: #ecf5ec;
+  background: linear-gradient(165deg, #153c32, #102f28);
+  border-right: 1px solid #173d32;
+  box-shadow: 6px 0 30px #123b2b08;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #4d7260 transparent;
+}
+.console-brand { padding: 2px 13px 28px; color: #f1f8ee; gap: 12px; }
+.console-brand img {
+  width: 38px;
+  height: 48px;
+  padding: 5px;
+  background: #e8f4e1;
+  border-radius: 11px;
+}
+.console-brand strong { font-size: 1.18rem; letter-spacing: .07em; }
+.console-brand small { color: #b6cdbc; font-size: .66rem; margin-top: 5px; }
+.sidebar-section-label { color: #a7bdae; font-size: .6rem; letter-spacing: .16em; padding: 7px 13px 12px; }
+.console-nav { gap: 4px; }
+.console-nav a {
+  position: relative;
+  min-height: 42px;
+  color: #c6d8cb;
+  font-size: .77rem;
+  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  transition: color .22s ease, background .22s ease, border-color .22s ease;
+}
+.console-nav a::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: -8px;
+  width: 3px;
+  border-radius: 3px;
+  background: #c4edc2;
+  opacity: 0;
+  transform: scaleY(.25);
+  transition: transform .3s cubic-bezier(.2,.8,.2,1), opacity .2s ease;
+}
+.console-nav a:hover { background: #ffffff0c; border-color: #ffffff12; color: #fff; }
+.console-nav a.active { color: #153e30; background: #d7efce; border-color: #d7efce; font-weight: 700; box-shadow: 0 4px 14px #071d1615; }
+.console-nav a.active::before { opacity: 1; transform: scaleY(1); }
+.console-nav .nav-icon { color: #a9c7b4; font-size: .98rem; }
+.console-nav a.active .nav-icon { color: #305d42; }
+.console-nav .nav-count { color: #d7ead9; background: #ffffff14; font-size: .62rem; border-radius: 6px; padding: 2px 6px; }
+.console-nav a.active .nav-count { color: #214b35; background: #bdddb4; }
+body[data-role=admin] .console-nav a.admin-only { display: flex!important; }
+.sidebar-bottom { padding-top: 20px; }
+.sidebar-motto { color: #bdd1c2; padding: 16px 7px; }
+.sidebar-motto p { color: #bdd1c2; font-size: .68rem; }
+.sidebar-motto img { width: 23px; height: 34px; }
+.public-link { background: #ffffff09; border-color: #ffffff22; color: #d4e6d7; margin: 0 4px 18px; font-size: .72rem; transition: background .2s ease, border-color .2s ease; }
+.public-link:hover { background: #ffffff14; border-color: #ffffff45; }
+.sidebar-user { border-top-color: #ffffff20; padding: 17px 5px 0; }
+.sidebar-user strong { font-size: .71rem; color: #ecf6ec; }
+.sidebar-user small { font-size: .63rem; color: #b5cbbb; }
+.sidebar-user button { color: #cee2d2; border-radius: 8px; }
+.sidebar-user button:hover { background: #ffffff14; }
+.user-avatar { background: #cce7c5; color: #244c34; border-radius: 11px; width: 35px; height: 35px; font-weight: 700; }
+
+/* A clear title and quiet status line leave the work in focus. */
+.team-console .topbar { margin-bottom: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--console-line); gap: 20px; }
+.team-console .topbar h1 { color: var(--console-ink); font-size: clamp(1.35rem, 1.6vw, 1.75rem); line-height: 1.2; letter-spacing: -.045em; }
+.team-console .topbar .eyebrow { color: #55725d; font-size: .61rem; letter-spacing: .13em; margin-bottom: 9px; }
+.team-console .topbar button { font-size: .7rem; min-height: 38px; }
+.team-console .local-chip { color: #42634b; border: 1px solid #d4e4d2; background: #e9f2e4; font-size: .62rem; }
+.team-console .connection-strip { margin-bottom: 24px; color: var(--console-muted); font-size: .7rem; }
+.team-console #updatedAt { color: #647568; font-size: .66rem; }
+.team-console .eyebrow { color: #4c6f54; font-weight: 700; }
+.team-console .muted, .team-console .form-info { color: var(--console-muted); font-size: .78rem; line-height: 1.7; }
+.team-console .module-heading h2 { color: var(--console-ink); font-size: clamp(1.65rem, 2.6vw, 2.25rem); line-height: 1.15; }
+.team-console .module-heading .eyebrow { font-size: .64rem; }
+.team-console .module-heading p:not(.eyebrow) { color: var(--console-muted); font-size: .82rem; max-width: 640px; line-height: 1.65; }
+.role-home-head { align-items: center; margin: 8px 0 26px; }
+.role-home-head h2 { font-size: clamp(1.9rem, 3.2vw, 2.7rem); line-height: 1.1; letter-spacing: -.055em; color: var(--console-ink); }
+.role-home-head>div>p:last-child { color: var(--console-muted); font-size: .83rem; line-height: 1.6; margin-top: 12px; }
+.role-pill { color: #365f42; background: #e4f0df; border-color: #cfdfc9; padding: 8px 13px; font-size: .66rem; }
+
+/* Depth comes from the surfaces; entrance transforms belong to motion.css. */
+.team-console .panel, .team-console .stat-card {
+  background: #fffef9;
+  border-color: var(--console-line);
+  border-radius: 19px;
+  box-shadow: 0 3px 4px #173d3202, 0 10px 28px #173d3204;
+}
+.team-console .panel { padding: 24px; }
+.team-console .panel:hover, .team-console .stat-card:hover { border-color: #bccfbe; box-shadow: 0 4px 8px #173d3203, 0 16px 30px #173d3209; }
+.team-console .panel-header { align-items: flex-start; gap: 14px; }
+.team-console .panel-header h2 { color: var(--console-ink); font-size: 1.25rem; }
+.team-console .panel-header .eyebrow { font-size: .62rem; margin-bottom: 8px; }
+.team-console .stat-card { padding: 21px 22px; }
+.team-console .stat-card strong { font-size: 2.2rem; font-weight: 600; color: var(--console-ink); font-variant-numeric: tabular-nums; }
+.team-console .stat-card span { color: #536b59; font-size: .74rem; opacity: 1; }
+.team-console .stat-card small { color: #5e7264; font-size: .67rem; }
+.team-console .stat-card.highlight { background: linear-gradient(140deg, #174735, #245e43); border-color: #174735; box-shadow: 0 12px 25px #184b3314; }
+.team-console .stat-card.highlight strong, .team-console .stat-card.highlight span, .team-console .stat-card.highlight small { color: #eff9ec; }
+.team-console .stat-card.highlight:after { background: #b8e6aa; }
+.team-console .admin-focus-card { min-height: 211px; gap: 9px; }
+.team-console .admin-focus-card.urgent { background: linear-gradient(140deg, #e5f2df, #f4f8eb)!important; border-color: #c7ddbf; }
+.admin-focus-number { font-size: 3rem; font-weight: 600; color: #24543c; font-variant-numeric: tabular-nums; margin-top: 10px; }
+.admin-focus-card>span { color: #4f6957; font-size: .78rem; }
+.admin-focus-card>small { color: #617366; font-size: .71rem; line-height: 1.6; }
+.team-console .text-btn { color: #275f40; font-size: .74rem; text-underline-offset: 4px; }
+.team-console .simple-coming { background: #f0f4eb; border-style: dashed; box-shadow: none; }
+.team-console .coming-member-card { background: linear-gradient(135deg, #edf4e6, #fafbf5)!important; }
+.simple-coming-grid .coming-member-card { min-height: 190px; }
+
+.team-console .panel.hero { background: linear-gradient(120deg, #ddedda, #edf5df 72%, #e0edcd); border-color: #cbdcc3; }
+.team-console .hero h2 { color: #214c33; line-height: 1.07; }
+.team-console .hero h2 em { color: #507b45; }
+.team-console .hero p:not(.eyebrow) { color: #536e50; font-size: .78rem; }
+.team-console .hero .eyebrow { color: #446c46; font-size: .62rem; }
+.team-console .hero-art img { position: static!important; inset: auto!important; margin: 0!important; transform: none!important; animation: none!important; }
+.team-console .console-daily-quote { background: #fffdf4!important; border-color: #e3e4ce; }
+.console-daily-quote span { color: #617447; font-size: .61rem; }
+.console-daily-quote blockquote { color: #34503a; font-size: 1.13rem; }
+.console-daily-quote small { color: #63745d; font-size: .67rem; }
+.console-privacy-banner { background: #eaf3e5; border-color: #d0e1c8; color: #526b50; font-size: .72rem; line-height: 1.65; }
+.console-privacy-banner::after { display: none; animation: none; }
+.assistant-mark { animation: none; box-shadow: none; }
+
+/* Controls respond without moving the panel around them. */
+.team-console :is(.btn,.outline-btn,.secondary-btn,.primary-btn,.hero-btn,.compact-btn) {
+  border-radius: 10px;
+  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.team-console :is(.btn.primary,.primary-btn,.hero-btn) { background: #245b3c; border-color: #245b3c; color: #fffdf5; box-shadow: 0 3px 8px #214e3010; }
+.team-console :is(.btn.primary,.primary-btn,.hero-btn):hover { background: #17462d; border-color: #17462d; box-shadow: 0 5px 12px #214e3025; }
+.team-console :is(.outline-btn,.secondary-btn,.compact-btn) { border-color: #d0dfcf; background: #fffef9; color: #315b3e; }
+.team-console :is(.outline-btn,.secondary-btn,.compact-btn):hover { border-color: #9fbea0; background: #eef5e8; }
+.team-console :is(a,button,input,select,textarea,summary):focus-visible { outline: 3px solid #438461; outline-offset: 3px; }
+.console-sidebar :is(a,button):focus-visible { outline-color: #d1f2bf; }
+.team-console .portal-panel :is(input,select,textarea) { background: #fbfcf6; border-color: #cadbc8; color: #264e36; border-radius: 10px; font-size: .8rem; transition: border-color .2s ease, box-shadow .2s ease; }
+.team-console .portal-panel :is(input,select,textarea):focus { border-color: #6d9975; box-shadow: 0 0 0 3px #7eb48618; }
+.team-console .portal-panel :is(label,legend) { color: #49684e; font-size: .75rem; }
+.team-console .entry-mode { background: #fbfcf6; border-color: #d5e1ce; }
+.team-console .entry-mode.active { background: #dfeeda; border-color: #a4c299; box-shadow: inset 0 0 0 1px #b9d1af; }
+.team-console .entry-mode strong { font-size: .85rem; }
+.team-console .entry-mode span { color: #5c7357; font-size: .7rem; }
+.team-console .chart-box { background: linear-gradient(#f0f7eb, #fcfdf7); }
+.team-console .chart-footnote { color: #5f7363; font-size: .67rem; }
+.team-console .chart-types button, .team-console .filter-pills button { font-size: .69rem; }
+.team-console .graph-series-controls label { color: #49664b; font-size: .7rem; }
+.team-console .status-dot { color: #416b44; background: #e9f2e3; font-size: .65rem; }
+.team-console :is(.request-row,.contact-row,.notification-row,.admin-request-row,.approval-row) { border-color: #d9e5d3; background: #f8fbf3; transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.team-console :is(.request-row,.admin-request-row):hover { background: #edf5e6; border-color: #acc89f; box-shadow: 0 3px 9px #33572b08; }
+.team-console .request-row.active { background: #e2efdb; border-color: #95b889; box-shadow: inset 3px 0 #4e7d4a; }
+.team-console :is(.request-row,.contact-row,.admin-request-row,.approval-row) strong { font-size: .8rem; }
+.team-console :is(.request-row,.contact-row,.admin-request-row,.approval-row) small { color: #5d7357; font-size: .69rem; line-height: 1.5; }
+.team-console .contact-book-grid .contact-row small, .team-console #contactsPanel .contact-row small { color: #5d7357; font-size: .69rem; }
+.team-console .request-notification-box summary { background: #e6f0df; font-size: .84rem; }
+.team-console .request-notification-box summary strong { font-size: .7rem; }
+.team-console .state-chip { font-size: .63rem; border-radius: 6px; }
+.team-console .chat-message { font-size: .82rem; line-height: 1.75; }
+.team-console .chat-message.user { background: #dfecd6; border-color: #cdddbe; color: #35582f; }
+.team-console .chat-message.assistant { background: #f4f8ed; border-color: #dce7cf; color: #314d33; box-shadow: none; }
+.team-console .chat-prompts button { color: #526f44; font-size: .69rem; }
+.team-console .smart-answer-meta span { color: #536f43; }
+.team-console footer { color: #5b715d; font-size: .68rem; border-color: var(--console-line); }
+
+@media (min-width: 1600px) {
+  .console-sidebar { width: 252px; }
+  .team-console .page-shell { margin-left: 252px; padding: 34px 42px; }
+}
+@media (max-width: 1180px) and (min-width: 901px) {
+  .console-sidebar { width: 214px; padding: 23px 12px 16px; }
+  .console-nav a { font-size: .72rem; padding: 10px 11px; gap: 9px; }
+  .team-console .page-shell { margin-left: 214px; padding: 25px; }
+  .team-console .topbar .actions { flex-wrap: wrap; }
+}
+@media (max-width: 900px) {
+  .console-sidebar { position: sticky; top: 0; width: 100%; padding: 10px 15px; border-bottom: 1px solid #2c5342; overflow: visible; box-shadow: 0 4px 16px #173d3210; }
+  .console-nav { gap: 7px; overflow-x: auto; padding: 2px; scroll-padding-inline: 12px; }
+  .console-nav a { min-height: 38px; font-size: .71rem; padding: 9px 12px; gap: 8px; }
+  .console-nav a::before { display: none; }
+  .team-console .page-shell { margin-left: 0; padding: 25px 22px; min-height: calc(100vh - 63px); }
+  .team-console .topbar { margin-bottom: 15px; }
+  .team-console .panel-header { flex-wrap: wrap; }
+}
+@media (max-width: 640px) {
+  .team-console .page-shell { padding: 22px 16px; }
+  .team-console .topbar h1 { font-size: 1.48rem; }
+  .team-console .topbar .actions { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+  .team-console .topbar button { font-size: .68rem; }
+  .team-console .panel { padding: 20px; border-radius: 16px; }
+  .team-console .stat-card { padding: 18px 16px; border-radius: 15px; }
+  .team-console .stat-card strong { font-size: 1.95rem; }
+  .team-console .stat-card span { font-size: .7rem; }
+  .role-home-head { margin-bottom: 23px; }
+  .role-home-head h2 { font-size: 2.05rem; }
+  .team-console .admin-focus-card { min-height: 195px; }
+  .admin-focus-number { font-size: 2.6rem; }
+  .team-console .hero h2 { font-size: 2rem; }
+  .team-console .hero p:not(.eyebrow) { max-width: 240px; font-size: .76rem; }
+  .team-console .hero-art { right: 3%!important; }
+  .team-console .portal-panel .form-grid { grid-template-columns: 1fr; }
+  .team-console .request-row { padding: 12px; gap: 9px; }
+  .team-console .request-notification-box summary { padding: 16px; font-size: .77rem; gap: 9px; }
+  .team-console .request-notification-box .request-list { padding: 10px 14px 16px; }
+  .team-console .contact-row { flex-wrap: wrap; }
+  .team-console .contact-row>div { flex-basis: calc(100% - 30px); }
+  .team-console .chat-message { font-size: .79rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .console-nav a::before { transition: none; }
+}
+html[data-motion=off] .console-nav a::before { transition: none; }
+@media print {
+  body.team-console { background: #fff; }
+  .team-console .page-shell { margin-left: 0; padding: 0; background: #fff; }
+  .team-console .panel, .team-console .stat-card { box-shadow: none; }
+}

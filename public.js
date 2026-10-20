@@ -61,6 +61,7 @@
       if(contact.email){const a=document.createElement('a');a.href='mailto:'+contact.email;a.textContent=contact.email;links.append(a);}
       if(contact.phone){const a=document.createElement('a');a.href='tel:'+contact.phone.replace(/[^0-9+]/g,'');a.textContent=contact.phone;links.append(a);}
       card.append(links);wrap.append(card);
+      window.PEACMotion?.reveal(wrap);
     }
   }).catch(()=>{const wrap=$('publicContactsList');if(wrap)wrap.innerHTML='<article class="public-panel"><p class="muted">Contacts could not be loaded right now.</p></article>';});
   $('publicFeedbackBtn')?.addEventListener('click',async()=>{
@@ -68,5 +69,5 @@
     $('publicFeedbackBtn').disabled=true;$('publicFeedbackStatus').textContent='Saving feedback...';
     try{const r=await fetch('/api/public/feedback',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1'},credentials:'same-origin',body:JSON.stringify({message})});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not save feedback.');$('publicFeedbackText').value='';$('publicFeedbackStatus').textContent='Feedback saved privately. Thank you.';}catch(e){$('publicFeedbackStatus').textContent=e.message;}finally{$('publicFeedbackBtn').disabled=false;}
   });
-  $('motionToggle').addEventListener('click',()=>{const off=document.documentElement.dataset.motion!=='off';document.documentElement.dataset.motion=off?'off':'on';$('motionToggle').setAttribute('aria-pressed',String(off));$('motionToggle').textContent=off?'Motion reduced':'Reduce motion';});
+
 })();

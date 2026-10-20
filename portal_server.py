@@ -26,7 +26,8 @@ HEADERS={
     "Content-Security-Policy":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
 }
 PUBLIC_FILES={"/":"public.html","/index.html":"public.html","/public.html":"public.html","/login":"login.html",
-              "/community.css":"community.css","/public.js":"public.js","/login.js":"login.js","/ribbon.svg":"ribbon.svg"}
+              "/community.css":"community.css","/public.js":"public.js",
+              "/resources.css":"resources.css","/resources.js":"resources.js","/motion.css":"motion.css","/motion.js":"motion.js","/login.js":"login.js","/ribbon.svg":"ribbon.svg"}
 PRIVATE_FILES={"/console":"console.html","/console.html":"console.html","/style.css":"style.css","/console.css":"console.css",
                "/script.js":"script.js","/charts.js":"charts.js","/auth.js":"auth.js","/console.js":"console.js",
                "/counts-template.csv":"counts-template.csv","/people-template.csv":"people-template.csv","/campaigns-template.csv":"campaigns-template.csv",
@@ -73,7 +74,13 @@ class PortalRouter:
         guard(method,headers.get("Host",""),headers.get("Origin"),headers.get("X-PEAC-Client"),peer,scheme)
         if verb=="OPTIONS": return 204,b"","text/plain",{}
         if verb=="GET" and path in PUBLIC_FILES:
-            return self.asset(PUBLIC_FILES[path])
+            result=self.asset(PUBLIC_FILES[path])
+            if PUBLIC_FILES[path]=="public.html":
+                # Only the public resource dialog may embed the two Google viewers.
+                # Private pages, scripts, API calls, and form destinations stay restricted.
+                status,data,mime,extra=result
+                return status,data,mime,{**extra,"Content-Security-Policy":HEADERS["Content-Security-Policy"]+"; frame-src https://drive.google.com https://docs.google.com"}
+            return result
         if verb=="GET" and path=="/api/public/config": return self.json_response(self.service.public_content())
         if verb=="GET" and path=="/api/public/contacts": return self.json_response(self.service.public_peac_contacts())
         payload=None

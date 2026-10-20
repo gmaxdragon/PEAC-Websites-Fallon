@@ -10,7 +10,12 @@
 <script defer="" src="/auth.js"></script><script defer="" src="/charts.js"></script>
 <script defer="" src="/script.js"></script>
 <link href="/ribbon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/community.css" rel="stylesheet"/><link href="/console.css" rel="stylesheet"/><meta content="noindex,nofollow" name="robots"/><script defer="" src="/console.js"></script></head>
+<link href="/community.css?v=20261020" rel="stylesheet"/>
+<link href="/console.css?v=20261020" rel="stylesheet"/>
+<link href="/motion.css?v=20261020" rel="stylesheet"/>
+<meta content="noindex,nofollow" name="robots"/>
+<script defer="" src="/motion.js?v=20261020"></script>
+<script defer="" src="/console.js"></script></head>
 <body class="team-console">
 <aside class="console-sidebar"><a class="console-brand" href="/console"><img alt="PEAC green ribbon" src="/ribbon.svg"/><div><strong>PEAC</strong><small>The kindness workspace</small></div></a><div class="sidebar-section-label">WORKSPACE</div><nav aria-label="Console navigation" class="console-nav"><a class="active" data-nav="home" href="#home"><span class="nav-icon">⌂</span>Home</a><a data-nav="overview" href="#overview"><span class="nav-icon">▦</span>Overview</a><a data-nav="reports" href="#reports"><span class="nav-icon">∿</span>Reports &amp; records</a><a data-nav="people" href="#people"><span class="nav-icon">＋</span>Compliments</a><a data-nav="lunch" href="#lunch"><span class="nav-icon">♧</span>Lunch Buddies<span class="nav-count" id="navLunchCount">0</span></a><a data-nav="contacts" href="#contacts"><span class="nav-icon">◎</span>Contacts</a><a class="admin-only" data-nav="website" href="#website"><span class="nav-icon">▤</span>Public website</a><a data-nav="assistant" href="#assistant"><span class="nav-icon">✧</span>PEAC Assistant</a><a data-nav="feedback" href="#feedback"><span class="nav-icon">◇</span>Feedback</a><a data-nav="soon" href="#soon"><span class="nav-icon">◷</span>Coming soon</a><a data-nav="settings" href="#settings"><span class="nav-icon">⚙</span>Settings<span class="nav-count" id="navSignupCount">0</span></a></nav><div class="sidebar-bottom"><div class="sidebar-motto"><img alt="PEAC green ribbon" src="/ribbon.svg"/><p>Kindness, thoughtfully<br/>put into practice.</p></div><a class="public-link" href="/" rel="noopener" target="_blank">View public site ↗</a><div class="sidebar-user"><span class="user-avatar" id="userInitial">P</span><div><strong id="signedInName">PEAC team</strong><small id="signedInRole">Private workspace</small></div><button aria-label="Sign out" id="logoutButton" title="Sign out" type="button">↪</button></div></div></aside><a class="skip-link" href="#dashboardView">Skip to dashboard</a>
 <div class="page-shell">
@@ -21,7 +26,7 @@
 <div class="connection-strip"><p id="dataStatus" role="status">Connecting to PEAC...</p><span id="updatedAt">No data loaded</span></div>
 <noscript><p class="notice error">JavaScript is required to load and save PEAC data.</p></noscript>
 <section class="portal-panel hidden" data-portal-panel="home" id="homePanel" tabindex="-1">
-<div class="role-home-head">
+<div class="role-home-head" data-reveal>
   <div>
     <p class="eyebrow" id="roleHomeEyebrow">PEAC workspace</p>
     <h2 id="roleHomeTitle">Welcome back.</h2>

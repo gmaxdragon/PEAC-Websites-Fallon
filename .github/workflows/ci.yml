@@ -28,6 +28,8 @@ jobs:
       - name: JavaScript syntax check
         run: |
           node --check public.js
+          node --check resources.js
+          node --check motion.js
           node --check login.js
           node --check auth.js
           node --check charts.js

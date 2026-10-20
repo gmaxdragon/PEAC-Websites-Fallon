@@ -1,0 +1,22 @@
+/* Shared motion stays lightweight and respects both device and PEAC settings. */
+:root { --peac-ease: cubic-bezier(.16, 1, .3, 1); }
+.btn, .outline-btn, .text-btn, .filter-pills button, .chart-types button {
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .25s ease, translate .28s var(--peac-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:not(:disabled):hover, .outline-btn:not(:disabled):hover { translate: 0 -2px; }
+  .btn:not(:disabled):active, .outline-btn:not(:disabled):active { translate: 0 0; }
+  .btn > [aria-hidden="true"] { transition: transform .3s var(--peac-ease); }
+  .btn:hover > [aria-hidden="true"] { transform: translate(2px, -2px); }
+}
+input, textarea, select { transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
+input:focus, textarea:focus, select:focus { border-color: #47795c; box-shadow: 0 0 0 4px #6d9c7015; }
+.public-success:not(.hidden) .success-mark { animation: peac-success .55s var(--peac-ease) both; }
+@keyframes peac-success { from { opacity: 0; transform: scale(.65) rotate(-12deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+html[data-motion="off"] { scroll-behavior:auto!important; }
+html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="off"] *::after {
+  animation: none !important; transition: none !important; scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
