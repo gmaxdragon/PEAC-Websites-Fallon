@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from peac_core import APIError, export_csv
 from portal_auth import COOKIE, SESSION_SECONDS, require_admin
+from peac_newsletter import NewsletterService
 
 LOOPBACK={"127.0.0.1","localhost","::1"}
 HOSTED=os.getenv("PEAC_DEPLOY_MODE","").lower()=="hosted"
@@ -27,6 +28,8 @@ HEADERS={
 }
 PUBLIC_FILES={"/":"public.html","/index.html":"public.html","/public.html":"public.html","/login":"login.html",
               "/community.css":"community.css","/public.js":"public.js",
+              "/newsletter.css":"newsletter.css","/newsletter.js":"newsletter.js",
+              "/breathing.css":"breathing.css","/breathing.js":"breathing.js","/doodles.svg":"doodles.svg",
               "/resources.css":"resources.css","/resources.js":"resources.js","/motion.css":"motion.css","/motion.js":"motion.js","/login.js":"login.js","/ribbon.svg":"ribbon.svg"}
 PRIVATE_FILES={"/console":"console.html","/console.html":"console.html","/style.css":"style.css","/console.css":"console.css",
                "/script.js":"script.js","/charts.js":"charts.js","/auth.js":"auth.js","/console.js":"console.js",
@@ -58,6 +61,7 @@ def guard(method,host,origin,marker,peer,scheme="http"):
 class PortalRouter:
     def __init__(self,service,base_dir):
         self.service,self.base_dir=service,Path(base_dir)
+        self.newsletter = NewsletterService(service.store, audit=service.auth.audit)
 
     @staticmethod
     def json_response(value,status=200,extra=None):
@@ -82,6 +86,7 @@ class PortalRouter:
                 return status,data,mime,{**extra,"Content-Security-Policy":HEADERS["Content-Security-Policy"]+"; frame-src https://drive.google.com https://docs.google.com"}
             return result
         if verb=="GET" and path=="/api/public/config": return self.json_response(self.service.public_content())
+        if verb=="GET" and path=="/api/public/newsletter": return self.json_response(self.newsletter.public_list())
         if verb=="GET" and path=="/api/public/contacts": return self.json_response(self.service.public_peac_contacts())
         payload=None
         if verb in {"POST","PUT","DELETE"}:
@@ -115,6 +120,9 @@ class PortalRouter:
             self.service.auth.logout(headers.get("Cookie",""))
             return self.json_response({"ok":True},200,{"Set-Cookie":f"{COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0" + ("; Secure" if HOSTED else "")})
         if verb=="GET" and path in PRIVATE_FILES: return self.asset(PRIVATE_FILES[path])
+        if path=="/api/portal/newsletter" or path.startswith("/api/portal/newsletter/"):
+            result,status=self.newsletter.dispatch(verb,path,payload,headers.get("Idempotency-Key",""),user)
+            return self.json_response(result,status)
         if path=="/api/portal/notifications" and verb=="GET": return self.json_response(self.service.notifications(user))
         if path=="/api/portal/notifications/read" and verb=="POST": return self.json_response(self.service.mark_notifications_read(user))
         if path=="/api/portal/site-feedback" and verb=="GET": return self.json_response(self.service.feedback_items(user))

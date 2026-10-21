@@ -1,13 +1,18 @@
 /* Shared motion stays lightweight and respects both device and PEAC settings. */
 :root { --peac-ease: cubic-bezier(.16, 1, .3, 1); }
 .btn, .outline-btn, .text-btn, .filter-pills button, .chart-types button {
-  transition: background-color .2s ease, border-color .2s ease, box-shadow .25s ease, translate .28s var(--peac-ease);
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .25s ease, translate .28s var(--peac-ease), scale .18s var(--peac-ease);
 }
 @media (hover: hover) and (pointer: fine) {
   .btn:not(:disabled):hover, .outline-btn:not(:disabled):hover { translate: 0 -2px; }
   .btn:not(:disabled):active, .outline-btn:not(:disabled):active { translate: 0 0; }
   .btn > [aria-hidden="true"] { transition: transform .3s var(--peac-ease); }
   .btn:hover > [aria-hidden="true"] { transform: translate(2px, -2px); }
+}
+@media (prefers-reduced-motion:no-preference) {
+  html:not([data-motion="off"]) :is(.btn,.outline-btn,.text-btn,.breathing-trigger,.filter-pills button,.chart-types button):not(:disabled):active {
+    scale:.97; translate:0 1px; transform:none; transition-duration:.1s;
+  }
 }
 input, textarea, select { transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
 input:focus, textarea:focus, select:focus { border-color: #47795c; box-shadow: 0 0 0 4px #6d9c7015; }

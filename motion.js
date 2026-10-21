@@ -3,6 +3,7 @@
   const root = document.documentElement;
   const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
   const activeAnimations = new Set();
+  const elementAnimations = new WeakMap();
   const observed = new WeakSet();
   const selectors = '[data-reveal], .resource-card, .about-card, .lunch-intro, .coming-card, .public-contact-card, .section-heading, .contacts-heading, .team-console .panel, .team-console .stat-card, .team-console .home-action-card, .team-console .lunch-stats article';
   let saved = 'on';
@@ -38,13 +39,26 @@
 
   function enter(element, delay = 0) {
     if (reduced() || !element.animate || !element.getClientRects().length) return;
+    // A data refresh and a view-change event can arrive together. Animate once.
+    if (elementAnimations.has(element)) return;
     // Content is visible by default. A failed script can never hide a section.
-    const animation = element.animate([
-      { opacity: 0, transform: 'translateY(22px) scale(.985)' },
+    const isCard = element.matches('.resource-card, .newsletter-card, .team-console .stat-card, .team-console .home-action-card');
+    const isPanel = element.matches('.team-console .panel, .team-console .lunch-stats article');
+    const frames = isCard ? [
+      { opacity: 0, transform: 'translateY(28px) scale(.975)', offset: 0 },
+      { opacity: 1, transform: 'translateY(-2px) scale(1)', offset: .8 },
+      { opacity: 1, transform: 'translateY(0) scale(1)', offset: 1 }
+    ] : [
+      { opacity: 0, transform: isPanel ? 'translateY(18px) scale(.99)' : 'translateY(22px)' },
       { opacity: 1, transform: 'translateY(0) scale(1)' }
-    ], { duration: 640, delay, easing: 'cubic-bezier(.16, 1, .3, 1)', fill: 'backwards' });
+    ];
+    const animation = element.animate(frames, { duration: isCard ? 720 : isPanel ? 560 : 640, delay, easing: 'cubic-bezier(.16, 1, .3, 1)', fill: 'backwards' });
     activeAnimations.add(animation);
-    const done = () => activeAnimations.delete(animation);
+    elementAnimations.set(element, animation);
+    const done = () => {
+      activeAnimations.delete(animation);
+      if (elementAnimations.get(element) === animation) elementAnimations.delete(element);
+    };
     animation.addEventListener('finish', done, { once: true });
     animation.addEventListener('cancel', done, { once: true });
   }
@@ -57,6 +71,14 @@
       enter(entry.target, Math.min(index++ * 65, 260));
     }
   }, { threshold: .08, rootMargin: '0px 0px -18px 0px' }) : null;
+
+  // Keep the decorative orbits and floating notes quiet while nobody can see them.
+  const sceneObserver = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
+    entries.forEach(entry => { entry.target.dataset.motionVisible = String(entry.isIntersecting); });
+  }, { threshold: 0 }) : null;
+  document.querySelectorAll('.public-site .ribbon-scene').forEach(scene => sceneObserver?.observe(scene));
+  const syncVisibility = () => { root.dataset.motionPaused = String(document.hidden); };
+  document.addEventListener('visibilitychange', syncVisibility);
 
   function reveal(container = document, replay = false) {
     const candidates = Array.from(container.querySelectorAll(selectors));
@@ -86,5 +108,6 @@
   window.addEventListener('peac:view', () => requestAnimationFrame(() => reveal(document, true)));
   window.PEACMotion = { reveal, reduced, setReduced };
   syncControls();
+  syncVisibility();
   reveal();
 })();

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="540" viewBox="0 0 144 540" fill="none" stroke="#111" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <g id="ribbon"><path d="M9 3C14-1 22-1 27 3L30 12C19 7 16 7 6 12Z"/><path d="M9 3C2 14 11 26 26 46L28 39L35 39C24 22 12 9 9 3Z"/><path d="M27 3C35 15 24 30 10 47L8 39H1C14 23 24 9 27 3Z"/></g>
+    <g id="clover"><path d="M17 19C7 19 2 12 6 7C10 1 17 7 18 12C18 3 25 0 29 5C34 10 28 17 23 18C32 16 38 23 33 28C29 33 21 27 20 23C19 32 11 36 6 30C2 24 9 19 17 19Z"/><path d="M20 23Q23 33 18 40"/></g>
+    <g id="brain"><path d="M20 7C15 1 7 4 7 11C0 11-1 20 4 23C0 31 8 36 12 32C15 39 22 36 22 30V10C22 3 30 2 33 7C40 5 44 13 40 17C47 21 43 30 38 30C37 38 27 38 25 32"/><path d="M7 11Q15 11 14 18M4 23Q11 19 14 26M12 32Q18 29 17 24M33 7Q28 11 32 16M40 17Q33 16 32 23M38 30Q29 30 31 25"/></g>
+    <g id="spark"><path d="M11 0L13 8L22 11L13 13L11 22L8 13L0 11L8 8Z"/></g>
+  </defs>
+  <use href="#ribbon" transform="translate(22 24) rotate(-16 18 24) scale(.8)"/>
+  <use href="#spark" transform="translate(102 20) rotate(12) scale(.55)"/>
+  <g transform="translate(100 103) rotate(13)"><circle cx="0" cy="0" r="2.8"/><path d="M-2 13C4 8 7 16-1 21"/></g>
+  <use href="#brain" transform="translate(19 137) rotate(12 20 18) scale(.7)"/>
+  <use href="#clover" transform="translate(83 205) rotate(21 18 18) scale(.78)"/>
+  <g transform="translate(28 267) rotate(-13)"><path d="M0 7C-1-1 9-2 11 5C15-3 24 0 22 7C21 12 11 19 11 19S1 13 0 7Z"/></g>
+  <use href="#ribbon" transform="translate(85 317) rotate(19 18 24) scale(.75)"/>
+  <use href="#spark" transform="translate(27 379) rotate(-12) scale(.65)"/>
+  <g transform="translate(41 435) rotate(-15)"><circle r="2.8"/><path d="M-2 13C4 8 7 16-1 21"/></g>
+  <use href="#brain" transform="translate(91 418) rotate(-19 20 18) scale(.65)"/>
+  <use href="#clover" transform="translate(52 490) rotate(-17 18 18) scale(.7)"/>
+  <circle cx="82" cy="68" r="2"/><circle cx="44" cy="228" r="1.7"/><circle cx="117" cy="281" r="2"/><circle cx="20" cy="484" r="1.6"/>
+</svg>

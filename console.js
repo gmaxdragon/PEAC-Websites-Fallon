@@ -1,7 +1,7 @@
 "use strict";
 (() => {
  const $=id=>document.getElementById(id),auth=window.PEACSession;
- const names={home:'Your PEAC home.',overview:'The kindness overview.',reports:'Your impact, in perspective.',people:'Log compliments.',lunch:'A place at the table.',contacts:'Your contact book.',website:'Your public welcome.',assistant:'Ask PEAC Assistant.',feedback:'Help improve PEAC.',soon:'More good things ahead.',settings:'A trustworthy workspace.'};
+ const names={home:'Your PEAC home.',overview:'The kindness overview.',reports:'Your impact, in perspective.',people:'Log compliments.',lunch:'A place at the table.',contacts:'Your contact book.',newsletter:'News from PEAC.',website:'Your public welcome.',assistant:'Ask PEAC Assistant.',feedback:'Help improve PEAC.',soon:'More good things ahead.',settings:'A trustworthy workspace.'};
  let section='home',queue=null,selected=null,editingContact=null,editingPeacContact=null,contactBook=null,config=null,mailEnabled=false,assistantHistory=[];
  const busy=new Set();
  const node=(tag,cls='',text='')=>{const n=document.createElement(tag);n.className=cls;n.textContent=text;return n;};
@@ -16,6 +16,7 @@
    if(name==='people')loadPeople().catch(e=>say('peopleStatus',e.message,true));
    if(name==='lunch')loadLunch().catch(e=>say('lunchQueueStatus',e.message,true));
    if(name==='contacts')loadPeacContacts().catch(e=>say('peacContactStatus',e.message,true));
+   if(name==='newsletter')loadNewsletter().catch(e=>say('newsletterStatus',e.message,true));
    if(name==='website')loadWebsite().catch(e=>say('websiteStatus',e.message,true));
    if(name==='assistant'){loadAssistantFaqs().catch(e=>say('chatStatus',e.message,true));if(auth.state.user?.role==='admin'){loadKnowledge().catch(e=>say('faqStatus',e.message,true));loadUsage().catch(e=>say('faqStatus',e.message,true));}}
    if(name==='settings'&&auth.state.user?.role==='admin')loadUsers().catch(e=>say('userStatus',e.message,true));
@@ -145,6 +146,122 @@
  $('cancelPeacContactEdit')?.addEventListener('click',()=>clearPeacContactForm());
  $('reloadPeacContacts')?.addEventListener('click',()=>work('reloadPeacContacts','peacContactStatus',loadPeacContacts));
 
+ // Newsletter drafts and explicit publication use the existing authenticated API.
+ let newsletterItems=[],newsletterEditing=null,newsletterEditorOpen=false,newsletterBusy=false,newsletterConflict=false,newsletterRetryAction=null,newsletterLoadGeneration=0;
+ const newsletterAdmin=()=>auth.state.user?.role==='admin';
+ const newsletterValues=()=>({title:$('newsletterTitle').value.trim(),body:$('newsletterBody').value.trim()});
+ const newsletterDirty=()=>newsletterEditorOpen&&JSON.stringify(newsletterValues())!==JSON.stringify({title:newsletterEditing?.title||'',body:newsletterEditing?.body||''});
+ function newsletterDate(value){const d=new Date(value);return value&&!Number.isNaN(d.getTime())?d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}):'Date unavailable';}
+ function newsletterDiscard(){return !newsletterDirty()||confirm('Discard the unsaved text in this editor? Saved updates will not change.');}
+ function syncNewsletterEditor(){
+   const admin=newsletterAdmin(),published=newsletterEditing?.status==='published',locked=newsletterBusy||newsletterConflict;
+   $('newNewsletter').hidden=!admin;$('newsletterEditorColumn').hidden=!admin;
+   $('newsletterWorkspace').dataset.mode=admin?'editor':'reader';
+   $('newsletterIntro').textContent=admin?'Write a private draft, then choose when to share it on the public PEAC website.':'Read the latest updates shared on the public PEAC website.';
+   $('newsletterListHeading').textContent=admin?'All updates':'Published updates';
+   $('newsletterEditorEmpty').hidden=newsletterEditorOpen;
+   $('newsletterEditor').hidden=!newsletterEditorOpen||!admin;
+   $('newsletterFields').disabled=newsletterBusy||!admin;
+   $('newsletterTitle').readOnly=$('newsletterBody').readOnly=Boolean(newsletterRetryAction)||newsletterConflict;
+   $('newNewsletter').disabled=$('reloadNewsletter').disabled=newsletterBusy||Boolean(newsletterRetryAction);
+   $('newsletterEditorHeading').textContent=newsletterEditing?'Edit update':'New update';
+   $('newsletterEditorEyebrow').textContent=published?'Visible on the public website':'Private until published';
+   $('newsletterEditorState').textContent=published?'Published':'Draft';
+   $('newsletterEditorState').classList.toggle('published',published);
+   $('newsletterEditorMeta').textContent=newsletterEditing?(published?'Published '+newsletterDate(newsletterEditing.published_at)+' · ':'')+'Last saved '+newsletterDate(newsletterEditing.updated_at):'Not saved yet';
+   $('newsletterCharacterCount').textContent=$('newsletterBody').value.length.toLocaleString()+' / 10,000';
+   $('saveNewsletter').textContent=newsletterRetryAction==='save'?'Retry save':published?'Update on website':'Save draft';
+   $('saveNewsletter').disabled=locked||Boolean(newsletterRetryAction&&newsletterRetryAction!=='save')||(!newsletterRetryAction&&Boolean(newsletterEditing)&&!newsletterDirty());
+   $('publishNewsletter').hidden=published;
+   $('publishNewsletter').textContent=newsletterRetryAction==='publish'?'Retry publication':'Publish to website ↗';
+   $('publishNewsletter').disabled=locked||Boolean(newsletterRetryAction&&newsletterRetryAction!=='publish');
+   $('unpublishNewsletter').hidden=!published;
+   $('unpublishNewsletter').textContent=newsletterRetryAction==='unpublish'?'Retry move to drafts':'Move to drafts';
+   $('unpublishNewsletter').disabled=locked||Boolean(newsletterRetryAction&&newsletterRetryAction!=='unpublish');
+   $('newsletterLoadLatest').hidden=!newsletterConflict;
+   $('newsletterPublishNote').textContent=published?'This update is public. Choose Update on website to publish your edits, or Move to drafts to remove it from the website.':'Save a private draft, or publish this update on the public website. Publishing also saves the text above.';
+   document.querySelectorAll('#newsletterList button').forEach(b=>{b.disabled=newsletterBusy||Boolean(newsletterRetryAction);});
+ }
+ function renderNewsletterList(){
+   const wrap=$('newsletterList'),admin=newsletterAdmin();wrap.replaceChildren();
+   if(!newsletterItems.length){wrap.append(node('p','newsletter-empty-copy',admin?'No updates yet. Choose New update to get started.':'No updates have been published yet.'));return;}
+   for(const item of newsletterItems){
+     const published=item.status==='published'||!admin;
+     if(admin){
+       const row=node('button','newsletter-row'+(newsletterEditing?.id===item.id?' selected':''));row.type='button';row.setAttribute('aria-pressed',String(newsletterEditing?.id===item.id));
+       const top=node('span','newsletter-row-top');top.append(node('strong','',item.title),node('span','newsletter-status-chip'+(published?' published':''),published?'Published':'Draft'));
+       row.append(top,node('span','newsletter-row-excerpt',item.body.length>145?item.body.slice(0,145)+'…':item.body),node('span','newsletter-row-date',(published?'Published '+newsletterDate(item.published_at):'Saved '+newsletterDate(item.updated_at))));
+       row.addEventListener('click',()=>{if(!newsletterBusy&&!newsletterRetryAction&&newsletterDiscard())selectNewsletter(item);});wrap.append(row);
+     }else{
+       const article=node('article','newsletter-read-post'),time=node('time','newsletter-row-date','Published '+newsletterDate(item.published_at));time.dateTime=item.published_at||'';
+       article.append(time,node('h3','',item.title),node('p','newsletter-read-body',item.body));wrap.append(article);
+     }
+   }
+   syncNewsletterEditor();
+ }
+ async function loadNewsletter(){
+   const generation=++newsletterLoadGeneration;syncNewsletterEditor();$('newsletterList').setAttribute('aria-busy','true');
+   try{const data=await auth.api(newsletterAdmin()?'/api/portal/newsletter':'/api/public/newsletter');if(generation!==newsletterLoadGeneration)return;newsletterItems=data.items||[];renderNewsletterList();say('newsletterStatus','');}
+   finally{if(generation===newsletterLoadGeneration)$('newsletterList').removeAttribute('aria-busy');}
+ }
+ function selectNewsletter(item){
+   newsletterEditing=item?{...item}:null;newsletterEditorOpen=true;newsletterConflict=false;newsletterRetryAction=null;
+   $('newsletterTitle').value=item?.title||'';$('newsletterBody').value=item?.body||'';say('newsletterEditorStatus','');
+   syncNewsletterEditor();renderNewsletterList();window.PEACMotion?.reveal($('newsletterEditorColumn'),true);
+   $('newsletterTitle').focus({preventScroll:true});$('newsletterEditor').scrollIntoView({block:'start',behavior:window.PEACMotion?.reduced()?'auto':'smooth'});
+ }
+ function rememberNewsletter(item,populate=true){
+   newsletterLoadGeneration++;$('newsletterList').removeAttribute('aria-busy');
+   newsletterEditing={...item};const index=newsletterItems.findIndex(x=>x.id===item.id);
+   if(index<0)newsletterItems.unshift(item);else newsletterItems[index]=item;
+   newsletterItems.sort((a,b)=>String(b.updated_at).localeCompare(String(a.updated_at))||String(b.id).localeCompare(String(a.id)));
+   if(populate){$('newsletterTitle').value=item.title;$('newsletterBody').value=item.body;}
+   renderNewsletterList();syncNewsletterEditor();
+ }
+ async function saveNewsletterText(){
+   if(newsletterEditing&&!newsletterDirty())return newsletterEditing;
+   const payload=newsletterValues(),id=newsletterEditing?.id;
+   if(id)payload.version=newsletterEditing.version;
+   const result=await auth.mutate('newsletter-save','/api/portal/newsletter'+(id?'/'+encodeURIComponent(id):''),id?'PUT':'POST',payload);
+   rememberNewsletter(result.item);return result.item;
+ }
+ async function newsletterAction(action){
+   if(!newsletterAdmin()||newsletterBusy||newsletterConflict||!newsletterEditorOpen)return;
+   if(newsletterRetryAction&&newsletterRetryAction!==action)return;
+   if(action!=='unpublish'&&!$('newsletterForm').reportValidity())return;
+   if(action!=='unpublish'&&(!newsletterValues().title||!newsletterValues().body)){say('newsletterEditorStatus','Add a title and update before saving.',true);return;}
+   if(action==='unpublish'&&newsletterEditing?.status!=='published')return;
+   newsletterBusy=true;syncNewsletterEditor();say('newsletterEditorStatus',action==='publish'?'Publishing update…':action==='unpublish'?'Moving update to drafts…':'Saving update…');
+   try{
+     if(action==='save'){
+       const saved=await saveNewsletterText();say('newsletterEditorStatus',saved.status==='published'?'Updated on the public website.':'Draft saved. It is not visible on the public website.');
+     }else if(action==='publish'){
+       const saved=await saveNewsletterText();
+       const result=await auth.mutate('newsletter-publish','/api/portal/newsletter/'+encodeURIComponent(saved.id)+'/publish','POST',{version:saved.version});
+       rememberNewsletter(result.item);say('newsletterEditorStatus','Published. This update is now on the public PEAC website.');
+     }else{
+       const result=await auth.mutate('newsletter-unpublish','/api/portal/newsletter/'+encodeURIComponent(newsletterEditing.id)+'/unpublish','POST',{version:newsletterEditing.version});
+       rememberNewsletter(result.item,false);say('newsletterEditorStatus','Moved to drafts and removed from the public website.'+(newsletterDirty()?' Your unsaved edits are still here; save the draft to keep them.':''));
+     }
+     newsletterRetryAction=null;
+   }catch(e){
+     if(e.status===409){
+       newsletterConflict=true;newsletterRetryAction=null;
+       try{await loadNewsletter();}catch(_){}
+       say('newsletterEditorStatus','This update changed in another session. Your text is still here. Load the latest saved version before editing again.',true);
+     }else if(!e.status||e.status>=500){
+       newsletterRetryAction=action;say('newsletterEditorStatus','The result is not confirmed. Retry this action with the same text before starting another update.',true);
+     }else{newsletterRetryAction=null;say('newsletterEditorStatus',e.message,true);}
+   }finally{newsletterBusy=false;syncNewsletterEditor();}
+ }
+ $('newNewsletter').addEventListener('click',()=>{if(newsletterAdmin()&&!newsletterBusy&&!newsletterRetryAction&&newsletterDiscard())selectNewsletter(null);});
+ $('reloadNewsletter').addEventListener('click',()=>{if(!newsletterBusy&&!newsletterRetryAction)loadNewsletter().catch(e=>say('newsletterStatus',e.message,true));});
+ $('newsletterTitle').addEventListener('input',syncNewsletterEditor);$('newsletterBody').addEventListener('input',syncNewsletterEditor);
+ $('newsletterForm').addEventListener('submit',e=>{e.preventDefault();newsletterAction('save');});
+ $('publishNewsletter').addEventListener('click',()=>newsletterAction('publish'));
+ $('unpublishNewsletter').addEventListener('click',()=>newsletterAction('unpublish'));
+ $('newsletterLoadLatest').addEventListener('click',async()=>{if(!newsletterAdmin()||newsletterBusy||!newsletterDiscard())return;try{await loadNewsletter();const current=newsletterItems.find(x=>x.id===newsletterEditing?.id);if(!current)throw Error('This update is no longer available.');selectNewsletter(current);}catch(e){say('newsletterEditorStatus',e.message,true);}});
+ window.addEventListener('beforeunload',e=>{if(newsletterAdmin()&&(newsletterDirty()||newsletterRetryAction)){e.preventDefault();e.returnValue='';}});
  async function loadWebsite(){[config,queue]=await Promise.all([auth.api('/api/portal/content'),auth.api('/api/portal/lunch')]);$('schoolLabel').value=config.school_label;$('aboutEditor').value=config.about;$('lunchIntroEditor').value=config.lunch_intro;$('privacyEditor').value=config.privacy_notice;$('lunchEnabled').checked=config.lunch_enabled;recipientPicker('defaultRecipients',queue.contacts,config.default_contact_ids);renderContacts();}
  function renderContacts(){const wrap=$('contactList');wrap.replaceChildren();for(const c of queue.contacts){const row=node('div','contact-row'),info=node('div');info.append(node('strong','',c.label+(c.active?'':' (inactive)')),node('small','',c.email));row.append(info);const edit=node('button','','Edit');edit.type='button';edit.addEventListener('click',()=>{editingContact=c;$('contactLabel').value=c.label;$('contactEmail').value=c.email;$('saveContact').textContent='Save contact changes';$('contactLabel').focus();say('contactStatus','Editing this saved contact.');});const toggle=node('button','',c.active?'Disable':'Enable');toggle.type='button';toggle.addEventListener('click',async()=>{if(c.active&&!confirm('Disable this approved recipient? Removing the last default recipient pauses public requests.'))return;try{await auth.mutate('toggle-contact:'+c.id,'/api/portal/contacts/'+c.id,'PUT',{label:c.label,email:c.email,active:!c.active});await loadWebsite();say('contactStatus','Contact updated.');}catch(e){say('contactStatus',e.message,true);}});row.append(edit,toggle);wrap.append(row);}}
  $('contactForm').addEventListener('submit',e=>{e.preventDefault();work('saveContact','contactStatus',async()=>{const path='/api/portal/contacts'+(editingContact?'/'+editingContact.id:'');await auth.mutate('contact',path,editingContact?'PUT':'POST',{label:$('contactLabel').value,email:$('contactEmail').value,active:editingContact?!!editingContact.active:true});editingContact=null;$('contactForm').reset();$('saveContact').textContent='Add contact';const contacts=await auth.api('/api/portal/contacts');queue.contacts=contacts;const keep=selectedContacts('defaultRecipients');recipientPicker('defaultRecipients',contacts,keep);renderContacts();say('contactStatus','Contact saved. Select default recipients and save the site settings.');});});

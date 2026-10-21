@@ -23,18 +23,23 @@ jobs:
         run: python -m pip install -r requirements-core.txt
 
       - name: Python syntax check
-        run: python -m py_compile peac.py peac_core.py peac_community.py peac_people.py peac_import.py peac_assistant.py peac_ai.py peac_mail.py peac_backup.py portal_auth.py portal_server.py local_server.py manage_accounts.py demo_seed.py wsgi.py
+        run: python -m py_compile peac.py peac_core.py peac_community.py peac_newsletter.py peac_people.py peac_import.py peac_assistant.py peac_ai.py peac_mail.py peac_backup.py portal_auth.py portal_server.py local_server.py manage_accounts.py demo_seed.py wsgi.py
 
       - name: JavaScript syntax check
         run: |
           node --check public.js
           node --check resources.js
           node --check motion.js
+          node --check newsletter.js
+          node --check breathing.js
           node --check login.js
           node --check auth.js
           node --check charts.js
           node --check script.js
           node --check console.js
+
+      - name: Newsletter access and publishing checks
+        run: python -m unittest -v test_peac_newsletter
 
       - name: Hosted-mode health smoke test
         env:
