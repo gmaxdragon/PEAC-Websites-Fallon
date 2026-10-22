@@ -9,7 +9,7 @@
       <div><p class="breathing-eyebrow">A moment for you</p><h2 id="breathingTitle">Box breathing</h2></div>
       <button class="breathing-close" type="button" aria-label="Close box breathing"><span aria-hidden="true">×</span></button>
     </div>
-    <p id="breathingDescription" class="breathing-description">Inhale for 4 seconds. Hold for 4. Exhale for 4. Wait for 4.</p>
+    <p id="breathingDescription" class="breathing-description">Four seconds on each side. Breathe in, hold, breathe out, hold.</p>
     <div class="breathing-visual" aria-hidden="true">
       <div class="breathing-glow"></div>
       <svg class="breathing-square" viewBox="0 0 300 300" fill="none">
@@ -19,7 +19,7 @@
         <circle class="breathing-corner" cx="265" cy="265" r="3"/><circle class="breathing-corner" cx="35" cy="265" r="3"/>
         <text x="150" y="19" text-anchor="middle">HOLD · 4</text>
         <text x="281" y="150" text-anchor="middle" transform="rotate(90 281 150)">EXHALE · 4</text>
-        <text x="150" y="289" text-anchor="middle">WAIT · 4</text>
+        <text x="150" y="289" text-anchor="middle">HOLD · 4</text>
         <text x="19" y="150" text-anchor="middle" transform="rotate(-90 19 150)">INHALE · 4</text>
         <circle class="breathing-traveler-halo" cx="35" cy="265" r="11"/>
         <circle class="breathing-traveler" cx="35" cy="265" r="5"/>
@@ -28,9 +28,9 @@
       <div class="breathing-center"><strong class="breathing-count">48</strong><span class="breathing-count-label">seconds total</span></div>
     </div>
     <div class="breathing-guidance"><p class="breathing-phase">Ready when you are</p><p class="breathing-meta">Three rounds. One quiet moment.</p></div>
-    <div class="breathing-rounds" aria-label="Three breathing rounds"><span></span><span></span><span></span></div>
+    <div class="breathing-rounds" aria-hidden="true"><span></span><span></span><span></span></div>
     <p class="breathing-status sr-only" role="status" aria-live="polite" aria-atomic="true">Ready. Three rounds of box breathing, 48 seconds in total.</p>
-    <div class="breathing-actions"><button class="breathing-main btn primary" type="button">Start 3 rounds</button><button class="breathing-back btn light" type="button">Back to website</button></div>
+    <div class="breathing-actions"><button class="breathing-main btn primary" type="button">Start 3 rounds</button><button class="breathing-restart btn light" type="button" hidden>Restart</button><button class="breathing-back btn light" type="button">Back to website</button></div>
     <p class="breathing-comfort">Keep it gentle. Stop whenever you need to.</p>`;
 
   const phaseDuration = 4000;
@@ -40,11 +40,11 @@
     { title: 'Inhale', instruction: 'Breathe in gently.', from: [35, 265], to: [35, 35] },
     { title: 'Hold', instruction: 'Hold gently.', from: [35, 35], to: [265, 35] },
     { title: 'Exhale', instruction: 'Breathe out slowly.', from: [265, 35], to: [265, 265] },
-    { title: 'Wait', instruction: 'Rest before the next breath.', from: [265, 265], to: [35, 265] }
+    { title: 'Hold', instruction: 'Pause gently before your next breath.', from: [265, 265], to: [35, 265] }
   ];
   const $ = selector => dialog.querySelector(selector);
   const ui = {
-    main: $('.breathing-main'), close: $('.breathing-close'), back: $('.breathing-back'),
+    main: $('.breathing-main'), close: $('.breathing-close'), back: $('.breathing-back'), restart: $('.breathing-restart'),
     phase: $('.breathing-phase'), meta: $('.breathing-meta'), count: $('.breathing-count'),
     countLabel: $('.breathing-count-label'), status: $('.breathing-status'),
     traveler: $('.breathing-traveler'), halo: $('.breathing-traveler-halo'),
@@ -103,6 +103,7 @@
 
   function finish() {
     cancelFrame();
+    const restartHadFocus = document.activeElement === ui.restart;
     state = 'complete';
     elapsed = totalDuration;
     dialog.dataset.breathingState = state;
@@ -114,8 +115,11 @@
     ui.count.textContent = '3';
     ui.countLabel.textContent = 'rounds complete';
     ui.main.textContent = 'Redo 3 rounds';
+    ui.restart.hidden = true;
+    ui.back.textContent = 'Back to website';
     ui.rounds.forEach(dot => { dot.classList.add('is-complete'); dot.classList.remove('is-current'); });
     ui.status.textContent = 'All three rounds complete. Choose Redo 3 rounds or Back to website.';
+    if (restartHadFocus) ui.main.focus({ preventScroll: true });
   }
 
   function tick(now) {
@@ -135,6 +139,8 @@
     state = 'running';
     dialog.dataset.breathingState = state;
     ui.main.textContent = 'Pause';
+    ui.restart.hidden = false;
+    ui.back.textContent = 'End session';
     startedAt = performance.now();
     renderTimer(elapsed);
     frame = requestAnimationFrame(tick);
@@ -169,21 +175,24 @@
     ui.count.textContent = '48';
     ui.countLabel.textContent = 'seconds total';
     ui.main.textContent = 'Start 3 rounds';
+    ui.restart.hidden = true;
+    ui.back.textContent = 'Back to website';
     ui.rounds.forEach(dot => { dot.classList.remove('is-complete', 'is-current'); });
     ui.status.textContent = 'Ready. Three rounds of box breathing, 48 seconds in total.';
   }
 
-  document.querySelectorAll('[data-open-breathing]').forEach(trigger => {
-    trigger.addEventListener('click', () => {
-      if (dialog.open) return;
-      opener = trigger;
-      reset();
-      dialog.showModal();
-      document.body.classList.add('breathing-dialog-open');
-      ui.main.focus({ preventScroll: true });
-    });
+  document.addEventListener('click', event => {
+    const trigger = event.target.closest?.('[data-open-breathing]');
+    if (!trigger || dialog.open) return;
+    event.preventDefault();
+    opener = trigger;
+    reset();
+    dialog.showModal();
+    document.body.classList.add('breathing-dialog-open');
+    ui.main.focus({ preventScroll: true });
   });
   ui.main.addEventListener('click', () => state === 'running' ? pause() : start());
+  ui.restart.addEventListener('click', () => { reset(); start(); ui.main.focus({ preventScroll: true }); });
   const closeDialog = () => { cancelFrame(); dialog.close(); };
   ui.close.addEventListener('click', closeDialog);
   ui.back.addEventListener('click', closeDialog);
@@ -196,7 +205,7 @@
   dialog.addEventListener('close', () => {
     reset();
     document.body.classList.remove('breathing-dialog-open');
-    opener?.focus({ preventScroll: true });
+    if (opener?.isConnected) opener.focus({ preventScroll: true });
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });
   window.addEventListener('pagehide', () => { if (dialog.open) pause(true); else cancelFrame(); });

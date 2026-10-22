@@ -487,3 +487,34 @@ html[data-motion=off] .console-nav a::before { transition: none; }
   .team-console .page-shell { margin-left: 0; padding: 0; background: #fff; }
   .team-console .panel, .team-console .stat-card { box-shadow: none; }
 }
+
+/* October 21 finish: give the private workspace the same clear, readable rhythm. */
+.team-console .panel { box-shadow:0 6px 24px #244b3106; }
+.team-console .panel-header { gap:18px; }
+.team-console .panel-header h2 { font-size:1.3rem; line-height:1.25; }
+.team-console .console-nav a { min-height:44px; font-size:.82rem; }
+.team-console .console-nav a.active { box-shadow:0 5px 16px #071d1620; }
+.team-console .sidebar-section-label { font-size:.65rem; }
+.team-console .public-link { min-height:42px; font-size:.77rem; }
+.team-console .topbar button { min-height:42px; font-size:.78rem; }
+.team-console .portal-panel :is(label,legend) { font-size:.82rem; line-height:1.6; }
+.team-console .portal-panel :is(input,select,textarea) { font-size:.92rem; }
+.team-console .portal-panel :is(input:not([type="checkbox"]):not([type="radio"]),select) { min-height:42px; }
+.team-console :is(.request-row,.contact-row,.admin-request-row,.approval-row) strong { font-size:.85rem; line-height:1.5; }
+.team-console :is(.request-row,.contact-row,.admin-request-row,.approval-row) small { font-size:.74rem; line-height:1.65; }
+.team-console .contact-book-grid .contact-row small,
+.team-console #contactsPanel .contact-row small { font-size:.74rem; }
+.team-console .newsletter-row-top > strong { font-size:.94rem; }
+.team-console .newsletter-row-excerpt { font-size:.81rem; }
+.team-console .newsletter-row-date { font-size:.72rem; }
+.team-console .newsletter-read-body { font-size:.94rem; line-height:1.9; }
+@media(max-width:900px) {
+  .team-console .console-nav a { font-size:.79rem; }
+  .team-console .panel-header { gap:13px; }
+}
+@media(max-width:640px) {
+  .team-console .portal-panel :is(input,select,textarea) { font-size:16px; }
+  .team-console .topbar .actions { gap:9px; }
+  .team-console .topbar button { padding:10px 13px; }
+  .team-console .newsletter-row { padding:17px; }
+}

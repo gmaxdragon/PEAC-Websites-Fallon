@@ -14,6 +14,7 @@ from peac_newsletter import NewsletterService
 
 LOOPBACK={"127.0.0.1","localhost","::1"}
 HOSTED=os.getenv("PEAC_DEPLOY_MODE","").lower()=="hosted"
+RELEASE="2026.10.21.1"
 
 def configured_hosts():
     values={h.strip().lower() for h in os.getenv("PEAC_ALLOWED_HOSTS","").split(",") if h.strip()}
@@ -27,6 +28,7 @@ HEADERS={
     "Content-Security-Policy":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
 }
 PUBLIC_FILES={"/":"public.html","/index.html":"public.html","/public.html":"public.html","/login":"login.html",
+              "/changelog":"changelog.html","/changelog/":"changelog.html","/changelog.html":"changelog.html","/changelog.css":"changelog.css",
               "/community.css":"community.css","/public.js":"public.js",
               "/newsletter.css":"newsletter.css","/newsletter.js":"newsletter.js",
               "/breathing.css":"breathing.css","/breathing.js":"breathing.js","/doodles.svg":"doodles.svg",
@@ -74,7 +76,7 @@ class PortalRouter:
         # Minimal health check is safe before host/origin enforcement and lets hosted
         # platforms probe the service over their internal route.
         if verb=="GET" and path=="/api/health":
-            return self.json_response({"ok":True,"service":"PEAC Community","mode":"hosted" if HOSTED else "local_preview"})
+            return self.json_response({"ok":True,"service":"PEAC Community","mode":"hosted" if HOSTED else "local_preview","release":RELEASE})
         guard(method,headers.get("Host",""),headers.get("Origin"),headers.get("X-PEAC-Client"),peer,scheme)
         if verb=="OPTIONS": return 204,b"","text/plain",{}
         if verb=="GET" and path in PUBLIC_FILES:

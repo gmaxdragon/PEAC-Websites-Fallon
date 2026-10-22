@@ -76,7 +76,7 @@
   const sceneObserver = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
     entries.forEach(entry => { entry.target.dataset.motionVisible = String(entry.isIntersecting); });
   }, { threshold: 0 }) : null;
-  document.querySelectorAll('.public-site .ribbon-scene').forEach(scene => sceneObserver?.observe(scene));
+  document.querySelectorAll('.public-site .ribbon-scene, .breathing-feature').forEach(scene => sceneObserver?.observe(scene));
   const syncVisibility = () => { root.dataset.motionPaused = String(document.hidden); };
   document.addEventListener('visibilitychange', syncVisibility);
 

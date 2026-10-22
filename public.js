@@ -51,7 +51,7 @@
   fetch('/api/public/config',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('Unavailable');return r.json();}).then(c=>{
     $('publicSchoolLabel').textContent=c.school_label;
     if(c.quote){$('publicDailyQuote').textContent=c.quote.text;$('publicQuoteDate').textContent=c.quote.date;}
-    $('aboutText').textContent=c.about||'The PEAC team is preparing this section. Check back for our story, mission, and programs.';
+    $('aboutText').textContent=c.about||'PEAC brings students together through small acts of kindness, shared lunches, and everyday support. Meet the team, find a Lunch Buddy, or take a quiet moment for yourself. You have a place here.';
     $('lunchIntro').textContent=c.lunch_intro;$('privacyNotice').textContent=c.privacy_notice;
     $('lunchDate').min=c.today;const max=new Date(c.today+'T12:00:00');max.setDate(max.getDate()+90);$('lunchDate').max=[max.getFullYear(),String(max.getMonth()+1).padStart(2,'0'),String(max.getDate()).padStart(2,'0')].join('-');
     $('lunchFields').disabled=!c.lunch_enabled;$('formAvailability').textContent=c.lunch_enabled?'Requests are open. Your details go to the private PEAC queue.':'Requests are paused while the PEAC team finishes setup. Please check with your coordinator.';
