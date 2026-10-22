@@ -11,6 +11,9 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from peac_community import CommunityService
+
 OUT = ROOT / 'test-artifacts'
 OUT.mkdir(exist_ok=True)
 BASE = 'http://127.0.0.1:5000'
@@ -19,15 +22,21 @@ BASE = 'http://127.0.0.1:5000'
 def run_checks():
     report = []
     with tempfile.TemporaryDirectory(prefix='peac-ui-') as temp:
+        database = Path(temp) / 'peac.sqlite3'
+        # The local server intentionally refuses unattended first-admin setup.
+        # Seed a disposable test account in this temporary database only.
+        service = CommunityService(database)
+        service.auth.create_user({'username': 'ui-test-admin', 'display_name': 'UI Test',
+                                  'password': 'UI-test-only-password-12345', 'role': 'admin'}, 'test')
         env = {**os.environ, 'PEAC_DEPLOY_MODE': '', 'PEAC_HOST': '127.0.0.1',
-               'PEAC_PORT': '5000', 'PEAC_DB_PATH': str(Path(temp) / 'peac.sqlite3')}
+               'PEAC_PORT': '5000', 'PEAC_DB_PATH': str(database)}
         with (OUT / 'server.log').open('w') as log:
             server = subprocess.Popen([sys.executable, 'peac.py', '--local-server'],
                                       cwd=ROOT, env=env, stdout=log, stderr=log)
             try:
                 for _ in range(60):
                     if server.poll() is not None:
-                        raise RuntimeError('Local server exited; see server.log')
+                        raise RuntimeError('Local server exited: ' + (OUT / 'server.log').read_text())
                     try:
                         with urllib.request.urlopen(BASE + '/api/health', timeout=1) as response:
                             assert response.status == 200
@@ -43,17 +52,22 @@ def run_checks():
                         errors = []
                         page.on('pageerror', lambda error: errors.append(str(error)))
                         response = page.goto(BASE, wait_until='networkidle')
+                        page.screenshot(path=str(OUT / f'home-{width}.png'), full_page=True, animations='disabled')
+                        page.locator('#programs').screenshot(path=str(OUT / f'coming-soon-{width}.png'), animations='disabled')
                         assert response.status == 200
                         expect(page.locator('body')).to_have_attribute('data-layout-revision', '2026.10.21.2')
                         expect(page.locator('.future-card')).to_have_count(6)
                         expect(page.locator('.symbol-trail')).to_have_count(7)
                         assert page.locator('.symbol-trail').evaluate_all('(els) => els.every(e => e.getAttribute("aria-hidden") === "true" && getComputedStyle(e).pointerEvents === "none")')
-                        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), f'Horizontal overflow at {width}'
+                        overflow = page.evaluate('''() => [...document.querySelectorAll('body *')].filter(e => {
+                            const r = e.getBoundingClientRect();
+                            return r.width && r.right > innerWidth + 1 && getComputedStyle(e).position !== 'fixed';
+                        }).map(e => ({tag:e.tagName, cls:e.className, right:e.getBoundingClientRect().right})).slice(0,12)''')
+                        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), f'Horizontal overflow at {width}: {overflow}'
                         assert page.locator('.symbol-trail svg').first.evaluate('(e) => getComputedStyle(e).animationName') == 'none'
                         ids = page.locator('[id]').evaluate_all('(els) => els.map(e => e.id)')
                         assert len(ids) == len(set(ids)), 'Duplicate HTML ids'
                         assert page.locator('a[href^="#"]').evaluate_all('(els) => els.every(e => !!document.getElementById(e.hash.slice(1)))'), 'Broken page anchor'
-                        # Every visible decoration stays outside interactive form controls.
                         assert page.evaluate('''() => {
                             const rects = [...document.querySelectorAll('input:not([type=hidden]), textarea, select, button')]
                                 .filter(e => e.getClientRects().length).map(e => e.getBoundingClientRect());
@@ -63,8 +77,6 @@ def run_checks():
                                     return rects.every(b => a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
                                 });
                         }'''), f'Decoration overlaps controls at {width}'
-                        page.screenshot(path=str(OUT / f'home-{width}.png'), full_page=True, animations='disabled')
-                        page.locator('#programs').screenshot(path=str(OUT / f'coming-soon-{width}.png'), animations='disabled')
                         trigger = page.get_by_role('button', name='Box breathing', exact=True)
                         trigger.click()
                         expect(page.locator('#breathingDialog')).to_be_visible()
@@ -75,14 +87,14 @@ def run_checks():
                         expect(trigger).to_be_focused()
                         assert not errors, errors
                         report.append({'width': width, 'status': 'passed', 'javascript_errors': errors})
-                        print(f'PASS {width}px: six feature areas, distributed symbols, no overflow, breathing dialog and focus return')
+                        print(f'PASS {width}px: six feature areas, distributed symbols, no overflow, breathing dialog and focus return', flush=True)
                         page.close()
                     page = browser.new_page(viewport={'width': 1440, 'height': 1000})
                     page.goto(BASE, wait_until='networkidle')
                     page.locator('#motionToggle').click()
                     expect(page.locator('html')).to_have_attribute('data-motion', 'off')
                     assert page.locator('.symbol-trail svg').first.evaluate('(e) => getComputedStyle(e).animationName') == 'none'
-                    print('PASS manual reduced-motion toggle')
+                    print('PASS manual reduced-motion toggle', flush=True)
                     browser.close()
             finally:
                 server.terminate()

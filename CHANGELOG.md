@@ -4,6 +4,18 @@ Dates use America/Los_Angeles. The public changelog is available at `/changelog`
 
 ## 2026-10-21
 
+### Spread-out symbols and a broader coming-soon preview
+
+Public layout revision: `2026.10.21.2`. This is a presentation-only update; the application release and breathing tool remain unchanged.
+
+- Distributed outline symbols through seven staggered spaces across the homepage, not only along the edges.
+- Made the desktop margin artwork extend along the full document, with fewer visible decorations on small screens.
+- Replaced the single online-compliments teaser with six broad areas: kindness and connection, community activities, moments of calm, student ideas, resources and support, and future extras.
+- Added a forest-green section with cream, sage and warm neutral cards, clearer typography, responsive spacing and links to feedback and the changelog.
+- Clearly labeled the preview as future ideas, not available features or a dated release promise.
+- Preserved the box-breathing interface, timing, controls and styles without modification.
+- Added isolated browser regression checks at 1440, 1024, 768, 390 and 320 pixels for overflow, decoration placement, anchors, reduced motion and breathing-dialog access.
+
 ### Design and navigation
 
 - Refreshed the public homepage layout, headings, spacing, and decorative artwork.
