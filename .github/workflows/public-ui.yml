@@ -1,0 +1,30 @@
+name: PEAC public layout
+on:
+  push:
+    branches: [main, peac/spread-symbols-20261021]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: |
+          python -m pip install -r requirements-core.txt playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Test public layout and preserved breathing tool
+        run: python tests/public_ui_check.py
+      - name: Save screenshots and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: peac-public-layout
+          path: test-artifacts/
+          retention-days: 7
