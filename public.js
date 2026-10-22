@@ -55,7 +55,7 @@
     $('lunchIntro').textContent=c.lunch_intro;$('privacyNotice').textContent=c.privacy_notice;
     $('lunchDate').min=c.today;const max=new Date(c.today+'T12:00:00');max.setDate(max.getDate()+90);$('lunchDate').max=[max.getFullYear(),String(max.getMonth()+1).padStart(2,'0'),String(max.getDate()).padStart(2,'0')].join('-');
     $('lunchFields').disabled=!c.lunch_enabled;$('formAvailability').textContent=c.lunch_enabled?'Requests are open. Your details go to the private PEAC queue.':'Requests are paused while the PEAC team finishes setup. Please check with your coordinator.';
-    if(pending)status('A previous request has an unconfirmed response. Re-enter its exact details to reconcile it, or ask a coordinator to check it first.',true);
+    if(pending)status('A previous request has an unconfirmed response. Re-enter its exact details and retry, or ask a coordinator to check it first.',true);
   }).catch(()=>{$('formAvailability').textContent='This preview is not connected. Open the page through the PEAC server; no request has been sent.';});
   $('publicFeedbackBtn')?.addEventListener('click',async()=>{
     const message=$('publicFeedbackText').value.trim();if(!message){$('publicFeedbackStatus').textContent='Write feedback first.';return;}
@@ -63,4 +63,68 @@
     try{const r=await fetch('/api/public/feedback',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1'},credentials:'same-origin',body:JSON.stringify({message})});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not save feedback.');$('publicFeedbackText').value='';$('publicFeedbackStatus').textContent='Feedback saved privately. Thank you.';}catch(e){$('publicFeedbackStatus').textContent=e.message;}finally{$('publicFeedbackBtn').disabled=false;}
   });
 
+})();
+
+/* Page-wide theme switch. No network requests, saved preferences or scroll hijacking. */
+(() => {
+  const root = document.documentElement;
+  const boundary = document.getElementById('feedback');
+  if (!document.body.classList.contains('public-site') || !boundary) return;
+  const chromeColor = document.querySelector('meta[name="theme-color"]');
+  let dark = null;
+  let queuedFrame = 0;
+  let fullHeight = window.innerHeight;
+  const deadband = 16;
+  boundary.dataset.themeBoundary = 'feedback';
+  root.dataset.themeRevision = '2026.10.22.1';
+
+  function isEditing() {
+    return document.activeElement?.matches('input,textarea,select,[contenteditable="true"]');
+  }
+
+  function syncTheme() {
+    queuedFrame = 0;
+    // Dialog scroll locks must not change the surrounding theme mid-session.
+    if (document.querySelector('dialog[open]')) return;
+    const visual = window.visualViewport;
+    const height = isEditing() ? fullHeight : (visual?.height || window.innerHeight);
+    const offset = isEditing() ? 0 : (visual?.offsetTop || 0);
+    const activationLine = offset + Math.min(300, Math.max(120, height * .42));
+    const distance = boundary.getBoundingClientRect().top - activationLine;
+    const next = dark === null ? distance <= 0 : dark ? distance < deadband : distance <= -deadband;
+    if (next === dark) return;
+    dark = next;
+    root.dataset.peacTheme = dark ? 'dark' : 'light';
+    if (chromeColor) chromeColor.content = dark ? '#102f27' : '#f8faf4';
+  }
+
+  function schedule() {
+    if (!queuedFrame) queuedFrame = requestAnimationFrame(syncTheme);
+  }
+
+  function resize() {
+    // Do not move the threshold just because a phone's keyboard opens.
+    if (!isEditing()) fullHeight = window.innerHeight;
+    schedule();
+  }
+
+  window.addEventListener('scroll', schedule, { passive:true });
+  window.addEventListener('resize', resize, { passive:true });
+  window.addEventListener('orientationchange', resize, { passive:true });
+  window.addEventListener('pageshow', schedule);
+  window.addEventListener('hashchange', schedule);
+  window.addEventListener('load', schedule, { once:true });
+  window.visualViewport?.addEventListener('resize', resize, { passive:true });
+  window.visualViewport?.addEventListener('scroll', schedule, { passive:true });
+  document.addEventListener('focusout', schedule);
+  document.addEventListener('close', schedule, true);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(); });
+  // News/config loading, form messages and textarea resizing can move the divider.
+  if ('ResizeObserver' in window) {
+    const observer = new ResizeObserver(schedule);
+    observer.observe(document.querySelector('.public-shell'));
+  }
+  document.fonts?.ready.then(schedule);
+  syncTheme();
+  requestAnimationFrame(() => { root.dataset.themeReady = 'true'; schedule(); });
 })();

@@ -1,7 +1,7 @@
 name: PEAC public layout
 on:
   push:
-    branches: [main, peac/spread-symbols-20261021]
+    branches: [main, peac/spread-symbols-20261021, peac/scroll-theme-20261022]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -15,12 +15,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Check JavaScript syntax
+        run: node --check public.js
       - name: Install test dependencies
         run: |
           python -m pip install -r requirements-core.txt playwright==1.55.0
-          python -m playwright install --with-deps chromium
-      - name: Test public layout and preserved breathing tool
+          python -m playwright install --with-deps chromium webkit
+      - name: Test responsive themes and preserved breathing tool
         run: python tests/public_ui_check.py
+      - name: Package source for reproducible review
+        if: always()
+        run: |
+          mkdir -p test-artifacts
+          git archive --format=tar HEAD > test-artifacts/source.tar
       - name: Save screenshots and test evidence
         if: always()
         uses: actions/upload-artifact@v4
