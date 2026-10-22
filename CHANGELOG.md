@@ -2,6 +2,21 @@
 
 Dates use America/Los_Angeles. The public changelog is available at `/changelog`.
 
+## 2026-10-22
+
+### Reversible page-wide scroll theme
+
+Theme revision: `2026.10.22.1`. Supersedes the static section fade in `2026.10.21.3`.
+
+- Switch the entire public homepage to forest green when the feedback divider reaches the upper part of the viewport. Scrolling back above it restores the light theme.
+- Update page backgrounds, text, form fields, cards, symbols and footer together. Remove the isolated Coming soon mask and extra fade padding.
+- Keep the switch position stable with a small hysteresis buffer and color-only changes, passive scroll listeners and one queued animation-frame measurement.
+- Recalculate for restored positions, deep links, resize, orientation changes, and asynchronously loaded content. Avoid keyboard-induced threshold shifts during editing.
+- Keep the breathing dialog's palette, controls and timing isolated from the theme. No backend, authentication, storage or data changes.
+- Improve narrow-screen touch targets and use 16px form text. Respect both reduced-motion controls.
+- Add Chromium and WebKit checks across 11 desktop/tablet/phone viewport configurations. Cover both directions, threshold stability, deep links, reloads, draft preservation, text contrast and breathing controls.
+- Add a read-only production UI check that waits for the exact deployed JavaScript before checking the live page. It does not submit forms.
+
 ## 2026-10-21
 
 ### Soft transition into Coming soon

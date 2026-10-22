@@ -1,0 +1,52 @@
+name: PEAC live theme verification
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-browser-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test dependencies
+        run: |
+          python -m pip install -r requirements-core.txt playwright==1.55.0
+          python -m playwright install --with-deps chromium webkit
+      - name: Wait for the exact deployed public script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import time, urllib.request
+          expected = Path('public.js').read_bytes()
+          deadline = time.monotonic() + 480
+          url = 'https://peac-web-production.up.railway.app/public.js?verify=scroll-theme-20261022'
+          while time.monotonic() < deadline:
+              try:
+                  request = urllib.request.Request(url, headers={'Cache-Control': 'no-cache'})
+                  with urllib.request.urlopen(request, timeout=10) as response:
+                      if response.status == 200 and response.read() == expected:
+                          print('Verified the deployed public.js matches this commit exactly.', flush=True)
+                          break
+              except OSError as error:
+                  print(type(error).__name__, flush=True)
+              time.sleep(5)
+          else:
+              raise SystemExit('The expected release did not reach the live website in this check window.')
+          PY
+      - name: Read-only live desktop and mobile browser checks
+        env:
+          PEAC_TEST_URL: https://peac-web-production.up.railway.app
+        run: python tests/public_ui_check.py
+      - name: Save live screenshots and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: peac-live-theme
+          path: test-artifacts/
+          retention-days: 7
