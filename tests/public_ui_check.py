@@ -19,11 +19,30 @@ OUT.mkdir(exist_ok=True)
 BASE = 'http://127.0.0.1:5000'
 
 
+def check_fade(page):
+    """Check the rendered cascade, not just the presence of a CSS string."""
+    state = page.locator('#programs').evaluate('''e => {
+        const s = getComputedStyle(e), b = getComputedStyle(e, '::before');
+        const heading = e.querySelector('.future-heading');
+        return {background: s.backgroundColor, border: s.borderTopWidth,
+            shadow: s.boxShadow, mask: b.maskImage || b.webkitMaskImage,
+            pointerEvents: b.pointerEvents, layer: b.zIndex,
+            padding: parseFloat(s.paddingTop), opacity: getComputedStyle(heading).opacity,
+            headingTop: heading.getBoundingClientRect().top - e.getBoundingClientRect().top};
+    }''')
+    assert state['background'] == 'rgba(0, 0, 0, 0)', state
+    assert state['border'] == '0px' and state['shadow'] == 'none', state
+    assert 'linear-gradient' in state['mask'], state
+    assert state['pointerEvents'] == 'none' and state['layer'] == '-1', state
+    assert state['opacity'] == '1' and state['padding'] >= 120, state
+    assert state['headingTop'] >= state['padding'] - 1, state
+    return state
+
+
 def run_checks():
     report = []
     with tempfile.TemporaryDirectory(prefix='peac-ui-') as temp:
         database = Path(temp) / 'peac.sqlite3'
-        # The local server intentionally refuses unattended first-admin setup.
         # Seed a disposable test account in this temporary database only.
         service = CommunityService(database)
         service.auth.create_user({'username': 'ui-test-admin', 'display_name': 'UI Test',
@@ -58,6 +77,7 @@ def run_checks():
                         expect(page.locator('body')).to_have_attribute('data-layout-revision', '2026.10.21.2')
                         expect(page.locator('.future-card')).to_have_count(6)
                         expect(page.locator('.symbol-trail')).to_have_count(7)
+                        fade = check_fade(page)
                         assert page.locator('.symbol-trail').evaluate_all('(els) => els.every(e => e.getAttribute("aria-hidden") === "true" && getComputedStyle(e).pointerEvents === "none")')
                         overflow = page.evaluate('''() => [...document.querySelectorAll('body *')].filter(e => {
                             const r = e.getBoundingClientRect();
@@ -86,15 +106,16 @@ def run_checks():
                         expect(page.locator('#breathingDialog')).not_to_be_visible()
                         expect(trigger).to_be_focused()
                         assert not errors, errors
-                        report.append({'width': width, 'status': 'passed', 'javascript_errors': errors})
-                        print(f'PASS {width}px: six feature areas, distributed symbols, no overflow, breathing dialog and focus return', flush=True)
+                        report.append({'width': width, 'status': 'passed', 'fade': fade, 'javascript_errors': errors})
+                        print(f'PASS {width}px: background fade, opaque content, six feature areas, distributed symbols, no overflow, breathing dialog and focus return', flush=True)
                         page.close()
                     page = browser.new_page(viewport={'width': 1440, 'height': 1000})
                     page.goto(BASE, wait_until='networkidle')
                     page.locator('#motionToggle').click()
                     expect(page.locator('html')).to_have_attribute('data-motion', 'off')
                     assert page.locator('.symbol-trail svg').first.evaluate('(e) => getComputedStyle(e).animationName') == 'none'
-                    print('PASS manual reduced-motion toggle', flush=True)
+                    check_fade(page)
+                    print('PASS manual reduced-motion toggle; static fade preserved', flush=True)
                     browser.close()
             finally:
                 server.terminate()

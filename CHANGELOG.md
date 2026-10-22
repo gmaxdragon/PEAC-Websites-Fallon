@@ -4,6 +4,17 @@ Dates use America/Los_Angeles. The public changelog is available at `/changelog`
 
 ## 2026-10-21
 
+### Soft transition into Coming soon
+
+Visual refinement: `2026.10.21.3`.
+
+- Replaced the hard top border and shadow with a gradual, background-only fade into the forest-green Coming soon section.
+- Kept headings, cards and links fully opaque and below the fade for readability.
+- Scaled the fade for phones and larger screens, with standard and Safari-compatible masking.
+- The fade is static and remains available with reduced motion. No new scrolling animation or script was added.
+- Preserved the box-breathing code, interface, timing and controls without modification.
+- Extended five-viewport browser checks to verify the computed fade, text placement and unchanged breathing access.
+
 ### Spread-out symbols and a broader coming-soon preview
 
 Public layout revision: `2026.10.21.2`. This is a presentation-only update; the application release and breathing tool remain unchanged.

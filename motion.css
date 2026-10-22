@@ -25,3 +25,42 @@ html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Coming-soon fade, 2026.10.21.3. Fade the background only, never its content.
+   The body-qualified selector intentionally wins over public.html's layout rules. */
+body.public-site .future-section {
+  --peac-fade-depth: clamp(96px, 12vw, 168px);
+  --peac-fade-mask: linear-gradient(to bottom,
+    transparent 0,
+    rgba(0,0,0,.06) calc(var(--peac-fade-depth) * .18),
+    rgba(0,0,0,.23) calc(var(--peac-fade-depth) * .38),
+    rgba(0,0,0,.55) calc(var(--peac-fade-depth) * .60),
+    rgba(0,0,0,.85) calc(var(--peac-fade-depth) * .80),
+    #000 var(--peac-fade-depth));
+  padding-top: calc(var(--peac-fade-depth) + clamp(24px, 3vw, 40px));
+  border: 0;
+  border-radius: 0 0 30px 30px;
+  background: transparent;
+  box-shadow: none;
+  isolation: isolate;
+}
+body.public-site .future-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 95% 20%, #386448 0%, transparent 48%), #163d32;
+  -webkit-mask-image: var(--peac-fade-mask);
+  mask-image: var(--peac-fade-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+@media (max-width: 560px) {
+  body.public-site .future-section { border-radius: 0 0 23px 23px; }
+}
+@media print {
+  body.public-site .future-section { padding-top: 26px; }
+  body.public-site .future-section::before { -webkit-mask-image: none; mask-image: none; }
+}
