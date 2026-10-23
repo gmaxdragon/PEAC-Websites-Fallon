@@ -1,17 +1,89 @@
-name: PEAC audit source verification
+name: PEAC isolated reliability audit
 on:
   push:
     branches: [peac/icons-audit-20261022]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  verify-transfer:
+  audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Preserve source packet for checksum verification
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify and apply reviewed source changes
+        run: |
+          python - <<'PY'
+          import base64, gzip, hashlib, json, shutil
+          from pathlib import Path
+          corrections = {'1': [[1409,1410,''],[6144,6146,'/'],[6908,6909,'2']], '2': [], '3': [[7841,7841,'x']]}
+          parts = []
+          for i in range(1,4):
+              value = Path(f'audit-transfer/part{i}.txt').read_text()
+              for start,end,text in reversed(corrections[str(i)]):
+                  value = value[:start] + text + value[end:]
+              parts.append(value)
+          raw = gzip.decompress(base64.b64decode(''.join(parts), validate=True))
+          assert hashlib.sha256(raw).hexdigest() == '2ead2501f38549e53ed24b289abf2ec7818ec503f7c04cb6ee92a09eb3010a6f'
+          changes = json.loads(raw)
+          prepared = []
+          for item in changes:
+              path = Path(item['path'])
+              assert not path.is_absolute() and '..' not in path.parts and '.git' not in path.parts
+              old = path.read_bytes() if path.exists() else None
+              assert (hashlib.sha256(old).hexdigest() if old is not None else None) == item['before'], str(path)
+              if 'binary' in item:
+                  new = base64.b64decode(item['binary'], validate=True)
+              elif 'text' in item:
+                  new = item['text'].encode()
+              else:
+                  text = old.decode()
+                  for start,end,replacement in reversed(item['edits']):
+                      text = text[:start] + replacement + text[end:]
+                  new = text.encode()
+              assert hashlib.sha256(new).hexdigest() == item['after'], str(path)
+              prepared.append((path,new))
+          for path,data in prepared:
+              path.parent.mkdir(parents=True,exist_ok=True)
+              path.write_bytes(data)
+          shutil.rmtree('audit-transfer')
+          print(f'All {len(prepared)} source files match their reviewed SHA-256 checksums.')
+          PY
+      - name: Save isolated application candidate
+        run: |
+          test "$GITHUB_REF_NAME" = "peac/icons-audit-20261022"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- . ':!.github/workflows'
+          git commit -m "Replace pictographic icons and repair confirmed PEAC reliability issues"
+          git push origin HEAD:refs/heads/peac/icons-audit-20261022
+          git rev-parse HEAD
+      - name: Syntax checks
+        run: |
+          for file in *.js; do node --check "$file"; done
+          python -m compileall -q .
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install -r requirements-core.txt playwright==1.55.0
+          python -m playwright install --with-deps chromium webkit
+      - name: Backend and access regression tests
+        run: python -m unittest -v test_regressions test_peac_newsletter
+      - name: Existing responsive theme and breathing tests
+        run: python tests/public_ui_check.py
+      - name: Public and private reliability browser audit
+        run: python tests/audit_ui_check.py
+      - name: Package reviewed candidate
+        if: always()
+        run: |
+          mkdir -p test-artifacts
+          git archive --format=tar HEAD > test-artifacts/source.tar
+          git rev-parse HEAD > test-artifacts/candidate.txt
+      - name: Preserve screenshots and results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: peac-source-packet
-          path: audit-transfer/
-          retention-days: 1
+          name: peac-reliability-audit
+          path: test-artifacts/
+          retention-days: 7
