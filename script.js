@@ -12,6 +12,7 @@
   function element(tag, className = "", content = "") { const node = document.createElement(tag); if (className) node.className = className; node.textContent = content; return node; }
   function key() { const bytes = new Uint8Array(16); crypto.getRandomValues(bytes); return Array.from(bytes, b => b.toString(16).padStart(2,"0")).join(""); }
   try { state.pending = JSON.parse(sessionStorage.getItem("peac.pending") || "{}"); } catch (_) { state.pending = {}; }
+  if(!state.pending || typeof state.pending!=="object" || Array.isArray(state.pending))state.pending={};
   function savePending() { try { sessionStorage.setItem("peac.pending", JSON.stringify(state.pending)); } catch (_) {} }
   async function request(path, method = "GET", payload, requestKey) {
     await window.PEACSession.ready; const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 30000);

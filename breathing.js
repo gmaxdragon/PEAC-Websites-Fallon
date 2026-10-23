@@ -7,7 +7,7 @@
   dialog.innerHTML = `
     <div class="breathing-header">
       <div><p class="breathing-eyebrow">A moment for you</p><h2 id="breathingTitle">Box breathing</h2></div>
-      <button class="breathing-close" type="button" aria-label="Close box breathing"><span aria-hidden="true">×</span></button>
+      <button class="breathing-close" type="button" aria-label="Close box breathing"><svg class="peac-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><use href="/icons.svg#close"/></svg></button>
     </div>
     <p id="breathingDescription" class="breathing-description">Four seconds on each side. Breathe in, hold, breathe out, hold.</p>
     <div class="breathing-visual" aria-hidden="true">

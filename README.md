@@ -1,20 +1,32 @@
-# PEAC Compliment Tracker
+# PEAC Community
 
-Run the website and API together from this folder (Python 3.10+):
+Public community website and authenticated private workspace, sharing one SQLite database.
+
+## Local setup (Python 3.10+)
 
 ```sh
-python3 -m venv .venv
-source .venv/bin/activate
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
 python -m pip install -r requirements.txt
 python peac.py
 ```
 
-Open http://127.0.0.1:5000 in your browser. Flask serves `index.html`, `style.css`, and `script.js`; the page loads real weekly totals from `/api/compliments`. `python_example.py` is a standalone sample and is not needed.
+On first start, create an administrator in your terminal. There is no default password.
+Open `http://127.0.0.1:5000/` for the public site and `/console` for the private workspace.
+The default database is `data/peac.sqlite3`. Do not commit or publicly share it.
 
-On first run the backend creates `data/compliments.csv` with `week,count` columns. Add weekly records there (dates in YYYY-MM-DD format), or use POST `/api/compliments`, then refresh the page. Charts display the recorded totals. Grade breakdowns are not collected by this backend. Report notes stay in your browser's local storage.
+## Tests
 
-Optional: install scikit-learn to enable additional forecasting models.
+```sh
+python -m unittest -v test_peac_newsletter test_regressions
+python -m pip install playwright==1.55.0
+python -m playwright install --with-deps chromium webkit
+python tests/public_ui_check.py
+python tests/audit_ui_check.py
+```
 
-The notes form adds each submission to the selected date’s totals. For example, 100 verified compliments followed by 230 produces 330. Trash counts also accumulate separately and do not contribute to the verified dashboard total. Enter only new counts on each submission.
-
-Use **Reset graph** at the bottom of the reports page to clear all saved verified and trash counts after confirmation. This resets dashboard totals for everyone; browser notes are kept.
+The audit suite creates disposable data and must never be directed at production.
+The existing live UI suite is read-only. See `DEPLOY.md` for hosted settings.
+All icons are same-origin SVG symbols in `icons.svg`; public content is never rewritten to remove user-supplied characters.
+Template files contain headers only. Fill in actual records before importing. Named weekly records require a Monday date.

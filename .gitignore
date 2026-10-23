@@ -33,3 +33,6 @@ backups/
 Thumbs.db
 .vscode/
 .idea/
+
+# Browser test evidence
+test-artifacts/

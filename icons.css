@@ -1,0 +1,6 @@
+/* Shared, decorative, monochrome line symbols. Labels carry their meaning. */
+.peac-icon{display:inline-block;width:1em;height:1em;min-width:1em;flex-shrink:0;vertical-align:-.13em;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.nav-icon .peac-icon{width:19px;height:19px;min-width:19px}.entry-mode strong .peac-icon{margin-right:.3em}.newsletter-empty-mark .peac-icon{width:1em;height:1em}
+.team-console{--icon-surface:#f5f8ef}.public-site{--icon-surface:#f8faf4}html[data-peac-theme=dark] .public-site{--icon-surface:#102f27}
+/* CSS-generated icons are line geometry as well. */
+.value-strip strong:before,.team-console .check-line input:checked+span:before{content:"";display:inline-block;width:.55em;height:.85em;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:rotate(45deg);margin:0 .4em .2em .1em}
