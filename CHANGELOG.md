@@ -2,6 +2,21 @@
 
 Dates use America/Los_Angeles. The public changelog is available at `/changelog`.
 
+## 2026-10-22: line icons and reliability fixes (2026.10.22.2)
+
+- Replaced authored emoji and decorative glyph icons with same-origin monochrome SVG symbols on public pages, sign-in, newsletter cards and the private console. User-submitted text is not rewritten.
+- Kept the scroll-triggered theme switch and breathing timing intact.
+- Require a valid Lunch Buddies receipt before showing success. Retry with the same key, retain details after malformed responses, and lock fields while sending.
+- Recover safely from malformed saved browser state; offer a retry when request availability cannot load.
+- Add feedback retry keys and per-visitor throttling instead of a single 12-per-hour limit shared by all public visitors.
+- Preserve newer public/private feedback drafts if an earlier save completes.
+- Bound sign-in and initial session requests with timeouts and reject malformed success replies.
+- Preserve roster edits across searches, grade/week changes and refreshes; save hidden changed rows as well as visible ones. Empty counts are not silently treated as zero.
+- Normalize student-name spacing and Unicode consistently to avoid duplicate weekly totals. Ambiguous existing duplicates are reported, not merged or deleted.
+- Restore three CSV and two Excel template downloads, fix the removed public-directory anchor, and keep `/admin` aliases behind existing authentication.
+- Add keyboard navigation and explicit tab associations for entry modes, and an accessible private-feedback label.
+- Add regression coverage for server permissions, templates, forms, icons, responsive console sections and failure recovery. Tests use isolated data; no production forms are submitted.
+
 ## 2026-10-22
 
 ### Reversible page-wide scroll theme

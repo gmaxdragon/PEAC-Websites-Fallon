@@ -256,15 +256,33 @@ class CommunityService(Service):
             return {"deleted":True,"id":entry_id}
         return self.store.mutate(key,"lunch-manual-delete:"+entry_id,p,remove)
 
-    def save_feedback(self, payload, source, user_id="public"):
+    def save_feedback(self, payload, source, user_id="public", *, key="", rate_key=None):
         p=object_payload(payload)
         if set(p)!={"message"}: raise APIError("Send only the feedback message.")
         message=text(p.get("message",""),"feedback",1500,True)
-        self.auth.rate_limit("feedback:"+str(user_id),12,3600)
         identity=str(uuid.uuid4())
-        with self.store.transaction() as db:
+        # Rate-limit by visitor without storing raw IPs in feedback or returning them.
+        bucket="feedback:"+source+":"+str(rate_key if rate_key is not None else user_id)
+        kind="feedback:"+source+":"+str(user_id)
+        normalized={"message":message}
+        if key:
+            if not isinstance(key,str) or not re.fullmatch(r"[A-Za-z0-9_-]{16,100}",key):
+                raise APIError("A valid feedback request key is required.")
+            fingerprint=hashlib.sha256(json.dumps([kind,normalized],sort_keys=True,allow_nan=False).encode()).hexdigest()
+            with self.store.connection() as db:
+                old=db.execute("SELECT fingerprint,result FROM receipts WHERE key=?",(key,)).fetchone()
+            if old:
+                if old["fingerprint"]!=fingerprint: raise APIError("This feedback key belongs to a different message.",409)
+                return {**json.loads(old["result"]),"replayed":True}
+        self.auth.rate_limit(bucket,12,3600)
+        def save(db):
             db.execute("INSERT INTO site_feedback VALUES(?,?,?,?,?)",(identity,source,message,str(user_id),now_iso()))
-        return {"ok":True,"id":identity,"notice":"Feedback saved privately for PEAC administrators."}
+            return {"ok":True,"id":identity,"notice":"Feedback saved privately for PEAC administrators."}
+        if key:
+            return self.store.mutate(key,kind,normalized,save)
+        # Retain compatibility with older pages which do not send a request key.
+        with self.store.transaction() as db:
+            return save(db)
 
     def feedback_items(self, user):
         require_admin(user)

@@ -1,7 +1,7 @@
 name: PEAC public layout
 on:
   push:
-    branches: [main, peac/spread-symbols-20261021, peac/scroll-theme-20261022]
+    branches: [main, peac/spread-symbols-20261021, peac/scroll-theme-20261022, peac/icons-audit-20261022]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -23,6 +23,10 @@ jobs:
           python -m playwright install --with-deps chromium webkit
       - name: Test responsive themes and preserved breathing tool
         run: python tests/public_ui_check.py
+      - name: Server and permission regressions
+        run: python -m unittest -v test_regressions test_peac_newsletter
+      - name: Public and private workflow regressions
+        run: python tests/audit_ui_check.py
       - name: Package source for reproducible review
         if: always()
         run: |

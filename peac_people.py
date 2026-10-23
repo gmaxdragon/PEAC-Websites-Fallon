@@ -101,12 +101,13 @@ def insert_person_entry(service, db, value: dict, actor: str) -> str:
 
 def _upsert_person_row(service, db, cleaned: dict, actor: str) -> dict:
     """Create or replace one person's weekly total inside an existing transaction."""
-    row = db.execute(
-        """SELECT p.entry_id FROM compliment_people p
-           JOIN entries e ON e.id=p.entry_id
-           WHERE lower(trim(p.person_name))=lower(trim(?)) AND e.date=? AND e.grade=?""",
-        (cleaned["name"], cleaned["date"], cleaned["grade"]),
-    ).fetchone()
+    matches = [r for r in db.execute(
+        "SELECT p.entry_id,p.person_name FROM compliment_people p JOIN entries e ON e.id=p.entry_id WHERE e.date=? AND e.grade=?",
+        (cleaned["date"], cleaned["grade"]),
+    ) if _key_name(r["person_name"]) == _key_name(cleaned["name"])]
+    if len(matches) > 1:
+        raise APIError("Multiple existing rows match this student and week. Review them before changing the total.",409)
+    row = matches[0] if matches else None
     if row:
         entry_id = row[0]
         db.execute(

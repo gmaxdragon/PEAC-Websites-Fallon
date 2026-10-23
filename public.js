@@ -2,67 +2,90 @@
 (() => {
   const $ = id => document.getElementById(id);
   const banner = $('publicModeBanner');
-  try { if (sessionStorage.getItem('peac.bannerDismissed') === '1') banner.hidden = true; } catch (_) {}
+  try { if (sessionStorage.getItem('peac.bannerDismissed') === '1' && banner) banner.hidden = true; } catch (_) {}
   $('dismissPublicBanner')?.addEventListener('click', () => {
-    banner.hidden = true;
+    if (banner) banner.hidden = true;
     try { sessionStorage.setItem('peac.bannerDismissed', '1'); } catch (_) {}
     document.querySelector('.public-brand')?.focus({preventScroll:true});
   });
-  let busy=false, pending=null;
+  let busy=false, pending=null, feedbackPending=null;
   try { pending=JSON.parse(sessionStorage.getItem('peac.lunch.pending')||'null'); } catch (_) {}
+  if (pending && (typeof pending!=='object' || !/^[a-zA-Z0-9_-]{16,100}$/.test(pending.key||'') || !/^[a-f0-9]{64}$/.test(pending.fingerprint||''))) pending=null;
+  const key=()=>Array.from(crypto.getRandomValues(new Uint8Array(20)),b=>b.toString(16).padStart(2,'0')).join('');
+  const hash=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
   function status(message,error=false){$('lunchStatus').textContent=message;$('lunchStatus').classList.toggle('error',error);}
-  function newKey(){return Array.from(crypto.getRandomValues(new Uint8Array(20)),b=>b.toString(16).padStart(2,'0')).join('');}
-  async function hash(value){const data=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));return Array.from(new Uint8Array(data),x=>x.toString(16).padStart(2,'0')).join('');}
+  function savePending(){try{if(pending)sessionStorage.setItem('peac.lunch.pending',JSON.stringify(pending));else sessionStorage.removeItem('peac.lunch.pending');}catch(_) {}}
+  async function json(path,options={},timeoutMs=18000){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...options,signal:controller.signal});
+      let data;try{data=await response.json();}catch(_){throw Error('The server response could not be confirmed. Keep your details and retry.');}
+      if(!response.ok){const error=Error(data?.error||`Request failed (${response.status}).`);error.status=response.status;throw error;}
+      return data;
+    }finally{clearTimeout(timer);}
+  }
   const form=$('lunchForm');
-  form.addEventListener('submit',async e=>{
-    e.preventDefault();if(busy||!form.reportValidity())return;
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();if(busy||!form.reportValidity())return;
     busy=true;$('submitLunchBtn').disabled=true;
-    const f=new FormData(form);const payload=Object.fromEntries(f);payload.consent=f.get('consent')==='on';
-    try {
+    const payload=Object.fromEntries(new FormData(form));payload.consent=payload.consent==='on';
+    const fields=$('lunchFields'),wasDisabled=fields.disabled;fields.disabled=true;
+    try{
       const fingerprint=await hash(JSON.stringify(payload));
-      if(pending&&pending.fingerprint!==fingerprint)throw new Error('An earlier request has not been confirmed. Restore the same details and retry, or ask a coordinator to check before creating another request.');
-      if(!pending)pending={key:newKey(),fingerprint};
-      try{sessionStorage.setItem('peac.lunch.pending',JSON.stringify(pending));}catch(_){}
-      status('Saving your request...');
-      let r,data,lastError=null;
-      for(let attempt=1;attempt<=3;attempt++){
-        const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),18000);
+      if(pending&&pending.fingerprint!==fingerprint)throw Error('An earlier request is unconfirmed. Restore its exact details and retry, or ask a coordinator to check it.');
+      if(!pending)pending={key:key(),fingerprint};savePending();status('Saving your request...');
+      let confirmed=null,lastError;
+      for(let attempt=0;attempt<3;attempt++){
         try{
-          r=await fetch('/api/public/lunch',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1','Idempotency-Key':pending.key},body:JSON.stringify(payload),credentials:'same-origin',signal:controller.signal});
-          const raw=await r.text();try{data=raw?JSON.parse(raw):{};}catch(_){data={};}
-          if(r.ok)break;
-          if(r.status>=400&&r.status<500&&r.status!==409)break;
-          lastError=new Error(data.error||`Temporary server problem (HTTP ${r.status}).`);
-        }catch(err){lastError=err;}
-        finally{clearTimeout(timer);}
-        if(attempt<3){status(`The server is reconnecting. Retrying safely (${attempt}/2)...`);await new Promise(resolve=>setTimeout(resolve,900*attempt));}
+          const data=await json('/api/public/lunch',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1','Idempotency-Key':pending.key},body:JSON.stringify(payload)});
+          if(data?.ok!==true || typeof data.reference!=='string' || !/^LB-[A-Z0-9]+$/.test(data.reference))throw Error('The server response could not be confirmed. Keep your details and retry.');
+          confirmed=data;break;
+        }catch(error){lastError=error;if(error.status>=400&&error.status<500)break;}
+        if(attempt<2){status(`Reconnecting. Retrying safely (${attempt+1}/2)...`);await new Promise(resolve=>setTimeout(resolve,900*(attempt+1)));}
       }
-      if(!r?.ok){
-        if(r&&r.status>=400&&r.status<500&&r.status!==409){pending=null;try{sessionStorage.removeItem('peac.lunch.pending');}catch(_){}}
-        if(lastError?.name==='AbortError')throw lastError;
-        throw new Error(data?.error||lastError?.message||'Unable to save your request. Your details were not confirmed as saved.');
+      if(!confirmed){
+        if(lastError?.status>=400&&lastError.status<500&&![408,409,429].includes(lastError.status)){pending=null;savePending();}
+        throw lastError||Error('Your request could not be confirmed.');
       }
-      pending=null;try{sessionStorage.removeItem('peac.lunch.pending');}catch(_){}
-      form.reset();form.classList.add('hidden');$('lunchReference').textContent=data.reference;$('successMessage').textContent=data.message;
+      pending=null;savePending();form.reset();form.classList.add('hidden');
+      $('lunchReference').textContent=confirmed.reference;$('successMessage').textContent=confirmed.message||'Your request was received.';
       $('lunchSuccess').classList.remove('hidden');$('lunchSuccess').focus();
-    }catch(error){status(error.name==='AbortError'?'PEAC could not confirm the server response. Your request key is saved safely. Press Send again with the same details and PEAC will check the original request without creating a duplicate.':error.message,true);}
-    finally{busy=false;$('submitLunchBtn').disabled=false;}
+    }catch(error){status(error.name==='AbortError'?'PEAC could not confirm the response. Retry with the same details; the saved request key prevents duplicates.':error.message,true);}
+    finally{busy=false;$('submitLunchBtn').disabled=false;fields.disabled=wasDisabled;}
   });
-  fetch('/api/public/config',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('Unavailable');return r.json();}).then(c=>{
-    $('publicSchoolLabel').textContent=c.school_label;
-    if(c.quote){$('publicDailyQuote').textContent=c.quote.text;$('publicQuoteDate').textContent=c.quote.date;}
-    $('aboutText').textContent=c.about||'PEAC brings students together through small acts of kindness, shared lunches, and everyday support. Meet the team, find a Lunch Buddy, or take a quiet moment for yourself. You have a place here.';
-    $('lunchIntro').textContent=c.lunch_intro;$('privacyNotice').textContent=c.privacy_notice;
-    $('lunchDate').min=c.today;const max=new Date(c.today+'T12:00:00');max.setDate(max.getDate()+90);$('lunchDate').max=[max.getFullYear(),String(max.getMonth()+1).padStart(2,'0'),String(max.getDate()).padStart(2,'0')].join('-');
-    $('lunchFields').disabled=!c.lunch_enabled;$('formAvailability').textContent=c.lunch_enabled?'Requests are open. Your details go to the private PEAC queue.':'Requests are paused while the PEAC team finishes setup. Please check with your coordinator.';
-    if(pending)status('A previous request has an unconfirmed response. Re-enter its exact details and retry, or ask a coordinator to check it first.',true);
-  }).catch(()=>{$('formAvailability').textContent='This preview is not connected. Open the page through the PEAC server; no request has been sent.';});
+  let configLoading=false;
+  const retry=document.createElement('button');retry.type='button';retry.className='btn light';retry.id='retryPublicConfig';retry.textContent='Retry connection';retry.hidden=true;$('formAvailability').after(retry);
+  async function loadConfig(){
+    if(configLoading)return;configLoading=true;retry.hidden=true;
+    try{
+      const c=await json('/api/public/config',{},15000);
+      if(!c||typeof c.lunch_enabled!=='boolean'||!/^\d{4}-\d{2}-\d{2}$/.test(c.today||''))throw Error('Invalid configuration');
+      $('publicSchoolLabel').textContent=c.school_label;
+      if(c.quote){$('publicDailyQuote').textContent=c.quote.text;$('publicQuoteDate').textContent=c.quote.date;}
+      $('aboutText').textContent=c.about||'PEAC brings students together through small acts of kindness, shared lunches, and everyday support.';
+      $('lunchIntro').textContent=c.lunch_intro;$('privacyNotice').textContent=c.privacy_notice;
+      $('lunchDate').min=c.today;const max=new Date(c.today+'T12:00:00');max.setDate(max.getDate()+90);$('lunchDate').max=[max.getFullYear(),String(max.getMonth()+1).padStart(2,'0'),String(max.getDate()).padStart(2,'0')].join('-');
+      $('lunchFields').disabled=!c.lunch_enabled;$('formAvailability').textContent=c.lunch_enabled?'Requests are open. Your details go to the private PEAC queue.':'Requests are paused while the PEAC team finishes setup. Please check with your coordinator.';
+      if(pending)status('A previous request has an unconfirmed response. Re-enter its exact details and retry, or ask a coordinator to check it first.',true);
+    }catch(_){$('lunchFields').disabled=true;$('formAvailability').textContent='PEAC could not check request availability. Retry the connection. Your form has not been sent.';retry.hidden=false;}
+    finally{configLoading=false;}
+  }
+  retry.addEventListener('click',loadConfig);loadConfig();
   $('publicFeedbackBtn')?.addEventListener('click',async()=>{
-    const message=$('publicFeedbackText').value.trim();if(!message){$('publicFeedbackStatus').textContent='Write feedback first.';return;}
-    $('publicFeedbackBtn').disabled=true;$('publicFeedbackStatus').textContent='Saving feedback...';
-    try{const r=await fetch('/api/public/feedback',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1'},credentials:'same-origin',body:JSON.stringify({message})});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not save feedback.');$('publicFeedbackText').value='';$('publicFeedbackStatus').textContent='Feedback saved privately. Thank you.';}catch(e){$('publicFeedbackStatus').textContent=e.message;}finally{$('publicFeedbackBtn').disabled=false;}
+    const button=$('publicFeedbackBtn'),field=$('publicFeedbackText'),notice=$('publicFeedbackStatus'),message=field.value.trim();
+    if(button.disabled)return;if(!message){notice.textContent='Write feedback first.';return;}
+    if(feedbackPending&&feedbackPending.message!==message){notice.textContent='An earlier feedback save is unconfirmed. Restore the previous message and retry first.';return;}
+    if(!feedbackPending)feedbackPending={key:key(),message};
+    button.disabled=true;notice.textContent='Saving feedback...';
+    try{
+      const data=await json('/api/public/feedback',{method:'POST',headers:{'Content-Type':'application/json','X-PEAC-Client':'1','Idempotency-Key':feedbackPending.key},body:JSON.stringify({message})});
+      if(data?.ok!==true||typeof data.id!=='string')throw Error('Feedback could not be confirmed. Retry the same message.');
+      feedbackPending=null;if(field.value.trim()===message)field.value='';notice.textContent='Feedback saved privately. Thank you.';
+    }catch(error){
+      if(error.status>=400&&error.status<500&&![408,409,429].includes(error.status))feedbackPending=null;
+      notice.textContent=error.name==='AbortError'?'Feedback could not be confirmed. Retry the same message safely.':error.message;
+    }finally{button.disabled=false;}
   });
-
 })();
 
 /* Page-wide theme switch. No network requests, saved preferences or scroll hijacking. */

@@ -14,7 +14,7 @@ from peac_newsletter import NewsletterService
 
 LOOPBACK={"127.0.0.1","localhost","::1"}
 HOSTED=os.getenv("PEAC_DEPLOY_MODE","").lower()=="hosted"
-RELEASE="2026.10.21.1"
+RELEASE="2026.10.22.2"
 
 def configured_hosts():
     values={h.strip().lower() for h in os.getenv("PEAC_ALLOWED_HOSTS","").split(",") if h.strip()}
@@ -29,6 +29,7 @@ HEADERS={
 }
 PUBLIC_FILES={"/":"public.html","/index.html":"public.html","/public.html":"public.html","/login":"login.html",
               "/changelog":"changelog.html","/changelog/":"changelog.html","/changelog.html":"changelog.html","/changelog.css":"changelog.css",
+              "/icons.svg":"icons.svg","/icons.css":"icons.css",
               "/community.css":"community.css","/public.js":"public.js",
               "/newsletter.css":"newsletter.css","/newsletter.js":"newsletter.js",
               "/breathing.css":"breathing.css","/breathing.js":"breathing.js","/doodles.svg":"doodles.svg",
@@ -72,6 +73,7 @@ class PortalRouter:
     def handle(self,method,path,headers,peer="127.0.0.1",scheme="http",body=b""):
         # headers is a case-insensitive mapping in both transports.
         path=urlsplit(path).path
+        path={"/admin":"/console","/admin/":"/console","/login.html":"/login"}.get(path,path)
         verb="GET" if method=="HEAD" else method
         # Minimal health check is safe before host/origin enforcement and lets hosted
         # platforms probe the service over their internal route.
@@ -104,7 +106,7 @@ class PortalRouter:
         if path=="/api/auth/signup" and verb=="POST":
             return self.json_response(self.service.auth.request_signup(payload,peer),201)
         if path=="/api/public/feedback" and verb=="POST":
-            return self.json_response(self.service.save_feedback(payload,"public","public"),201)
+            return self.json_response(self.service.save_feedback(payload,"public","public",key=headers.get("Idempotency-Key",""),rate_key=peer),201)
         if path=="/api/public/lunch" and verb=="POST":
             result=self.service.submit_lunch(payload,headers.get("Idempotency-Key",""),peer)
             return self.json_response(result,200 if result.get("replayed") else 201)
@@ -128,7 +130,7 @@ class PortalRouter:
         if path=="/api/portal/notifications" and verb=="GET": return self.json_response(self.service.notifications(user))
         if path=="/api/portal/notifications/read" and verb=="POST": return self.json_response(self.service.mark_notifications_read(user))
         if path=="/api/portal/site-feedback" and verb=="GET": return self.json_response(self.service.feedback_items(user))
-        if path=="/api/portal/site-feedback" and verb=="POST": return self.json_response(self.service.save_feedback(payload,"private",user["id"]),201)
+        if path=="/api/portal/site-feedback" and verb=="POST": return self.json_response(self.service.save_feedback(payload,"private",user["id"],key=headers.get("Idempotency-Key","")),201)
         if path=="/api/backup.sqlite3" and verb=="GET":
             require_admin(user)
             from peac_backup import backup_bytes

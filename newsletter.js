@@ -19,7 +19,7 @@
   function showEmpty(title, detail) {
     feed.replaceChildren();
     const empty = document.createElement('div'); empty.className = 'newsletter-empty';
-    const mark = document.createElement('span'); mark.className = 'newsletter-empty-mark'; mark.setAttribute('aria-hidden', 'true'); mark.textContent = '✳';
+    const mark = document.createElement('span'); mark.className = 'newsletter-empty-mark'; mark.setAttribute('aria-hidden', 'true'); mark.innerHTML = '<svg class="peac-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><use href="/icons.svg#spark"/></svg>';
     const copy = document.createElement('div');
     const strong = document.createElement('strong'); strong.textContent = title;
     const p = document.createElement('p'); p.textContent = detail;
@@ -48,7 +48,7 @@
       excerpt.textContent = post.body.length > 240 ? post.body.slice(0, 240).trimEnd() + '…' : post.body;
       const read = document.createElement('button'); read.type = 'button'; read.className = 'newsletter-read'; read.textContent = 'Read update'; read.setAttribute('aria-label', 'Read update: ' + post.title);
       read.setAttribute('aria-haspopup', 'dialog'); read.setAttribute('aria-controls', 'newsletterDialog');
-      const arrow = document.createElement('span'); arrow.setAttribute('aria-hidden', 'true'); arrow.textContent = '↗'; read.append(arrow);
+      const arrow = document.createElement('span'); arrow.setAttribute('aria-hidden', 'true'); arrow.innerHTML = '<svg class="peac-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><use href="/icons.svg#arrow-up-right"/></svg>'; read.append(arrow);
       read.addEventListener('click', () => openPost(post, read));
       if (!firstButton) firstButton = read;
       article.append(date, title, excerpt, read); feed.append(article);
